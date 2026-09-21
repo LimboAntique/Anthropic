@@ -63,6 +63,7 @@ test('worker answers a SimRequest with the matching SimResult', async () => {
   const g = globalThis as unknown as { postMessage: (m: unknown) => void; onmessage: (e: { data: unknown }) => void }
   let reply: unknown
   g.postMessage = (m) => (reply = m)
+  g.onmessage = () => {} // declares the global that the worker module assigns
   await import('../src/engine/worker')
   const req = { id: 9, params: scaleForSim(DEFAULTS, 1e3), requests: 1e4, seed: 2 }
   g.onmessage({ data: req })
