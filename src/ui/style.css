@@ -1,2 +1,67 @@
-body { font-family: system-ui, sans-serif; margin: 16px; }
-#app { white-space: pre; font-family: ui-monospace, monospace; }
+/* Classroom paper palette; every colour has exactly one meaning across the page */
+:root {
+  color-scheme: light;
+  --paper: #FBF8F3; --ink: #2B2320; --muted: #8A8078;
+  --given: #33415C; --given-bg: #E6E9F0;
+  --choice: #D98A45; --choice-bg: #F7EBDD;
+  --good: #5B7F62; --good-bg: #E4EAE4; --warn: #C9A24B; --bad: #8C2F39;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; padding: 16px; font: 14px/1.45 system-ui, -apple-system, 'Segoe UI', sans-serif; background: var(--paper); color: var(--ink); font-variant-numeric: tabular-nums; }
+h1, h2, #verdict, figcaption b { font-family: Georgia, 'Iowan Old Style', serif; }
+h1 { margin: 0; font-size: 22px; }
+h2 { margin: 0 0 8px; font-size: 16px; }
+header p { margin: 4px 0 10px; color: var(--muted); max-width: 70ch; }
+small, figcaption, #dataset, #sim-status, details { color: var(--muted); font-size: 12px; }
+a { color: var(--given); }
+button, select { font: inherit; color: inherit; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 8px; padding: 3px 10px; cursor: pointer; }
+button:hover { background: var(--choice-bg); }
+#presets { display: flex; flex-wrap: wrap; gap: 6px; }
+#blurb { min-height: 1.45em; font-style: italic; }
+
+/* Three columns on desktop, advisor drops below at tablet width, single column on phones */
+main { display: grid; grid-template-columns: 300px minmax(0, 1fr) 260px; gap: 16px; align-items: start; }
+@media (max-width: 1200px) { main { grid-template-columns: 300px minmax(0, 1fr); } #advisor { grid-column: 1 / -1; } }
+@media (max-width: 760px) { main { grid-template-columns: minmax(0, 1fr); } }
+
+.card, figure { border: 1.5px solid var(--ink); border-radius: 8px; padding: 12px; margin: 0; }
+#inputs, #results { display: grid; gap: 16px; }
+
+/* Given system and Redis choices each own one colour, reused wherever that group shows up */
+.system { background: var(--given-bg); border-color: var(--given); accent-color: var(--given); }
+.redis { background: var(--choice-bg); border-color: var(--choice); accent-color: var(--choice); }
+h2 small { float: right; font: 600 11px system-ui, sans-serif; text-transform: uppercase; letter-spacing: 0.05em; color: var(--given); }
+.redis h2 small, .choice { color: var(--choice); }
+.choice { text-decoration: underline dashed; text-underline-offset: 3px; }
+label { display: grid; grid-template-columns: 1fr auto; margin-top: 8px; }
+label output { font-weight: 600; }
+label input, label select { grid-column: 1 / -1; width: 100%; margin: 2px 0 0; }
+
+/* The verdict is the largest text on the page; its level shows as a mark plus colour */
+#verdict { font-size: 26px; line-height: 1.25; font-style: italic; }
+#verdict p { margin: 6px 0 0; font: 14px/1.45 system-ui, sans-serif; }
+.good b::before { content: '✓ '; color: var(--good); }
+.warn b::before { content: '△ '; color: var(--warn); }
+.bad b::before { content: '✗ '; color: var(--bad); }
+#advisor { background: var(--good-bg); border-color: var(--good); }
+#amber { display: block; width: 100%; max-height: 150px; }
+#advice { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+
+#tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+#tiles .card { display: grid; }
+#tiles strong { font-size: 22px; }
+#tiles .bad strong { color: var(--bad); }
+
+#charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
+figure > div { margin-top: 8px; }
+figcaption b { color: var(--ink); font-size: 15px; margin-right: 6px; }
+.key { white-space: nowrap; margin-right: 6px; }
+.key::before { content: ''; display: inline-block; width: 16px; margin-right: 4px; vertical-align: middle; border-top: 3px solid var(--choice); }
+.key.dot::before { border-top-style: dotted; }
+.key.ideal::before { border-top: 3px dashed var(--good); }
+.key.base::before { border-color: var(--muted); }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th, td { text-align: right; padding: 2px 4px; border-top: 1px solid var(--muted); font-weight: normal; }
+th:first-child { text-align: left; }
+details ul { padding-left: 18px; }

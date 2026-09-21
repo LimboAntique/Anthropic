@@ -6,8 +6,71 @@
     <title>Does Redis help?</title>
   </head>
   <body>
-    <h1>Does Redis help?</h1>
-    <div id="app"></div>
+    <header>
+      <h1>Does Redis help?</h1>
+      <p>Cache capacity is a hidden TTL. Take a system as given, pick your Redis settings, and see whether the cache earns its keep.</p>
+      <nav id="presets" aria-label="Presets"></nav>
+      <p id="blurb"></p>
+    </header>
+    <main>
+      <section id="inputs">
+        <form class="card system" id="system">
+          <h2>① Your system <small>given</small></h2>
+          <button type="button" id="dice">🎲 Randomize</button>
+          <p id="dataset"></p>
+        </form>
+        <form class="card redis" id="redis">
+          <h2>② Your Redis choices <small>you decide</small></h2>
+        </form>
+      </section>
+      <section id="results">
+        <div id="verdict"></div>
+        <div id="tiles"></div>
+        <div id="charts">
+          <figure>
+            <figcaption><b>Miss rate vs memory</b> <span class="key">your Redis (LRU)</span> <span class="key ideal">ideal (hottest keys pinned)</span></figcaption>
+            <div id="chart-mem"></div>
+          </figure>
+          <figure>
+            <figcaption><b>Miss and stale reads vs TTL</b> <span class="key">miss</span> <span class="key dot">stale</span></figcaption>
+            <div id="chart-ttl"></div>
+          </figure>
+          <figure>
+            <figcaption><b>Read latency CDF</b> <span class="key">with Redis</span> <span class="key base">database only</span></figcaption>
+            <div id="chart-cdf"></div>
+            <table id="latency"></table>
+          </figure>
+          <figure>
+            <figcaption><b>Model vs simulation</b> <span>● miss</span> <span>□ stale</span></figcaption>
+            <div id="chart-parity"></div>
+            <p><button type="button" id="validate">Validate with simulation</button> <span id="sim-status">Replays the scaled workload through a real LRU + TTL cache in a Web Worker; points on the diagonal mean the model can be trusted.</span></p>
+          </figure>
+        </div>
+        <details>
+          <summary>Assumptions &amp; non-goals</summary>
+          <ul>
+            <li>Independent reference model: stationary Zipf popularity, Poisson arrivals; no bursts, trends or temporal locality.</li>
+            <li>All objects have the same size, plus 100 B of per-key Redis overhead.</li>
+            <li>Redis runs <code>allkeys-lru</code> as exact LRU with immediate expiry. Real Redis samples 5 keys and expires lazily, and its default policy is <code>noeviction</code>, which rejects writes once memory is full.</li>
+            <li>The TTL is set when a key is filled and is not reset by hits, unlike the classic Che TTL cache.</li>
+            <li>Writes follow the read popularity. <code>ttl-only</code>: writes go to the database only and the cached copy stays stale until it expires or is evicted. <code>invalidate</code>: writes delete the cached key.</li>
+            <li>Latencies are log-normal fits to P50/P99. A miss pays Redis P50 plus the database; while Redis is down every read pays the client timeout plus the database.</li>
+            <li>Database latency does not grow with load; overload is reported as utilisation only.</li>
+            <li>Non-goals: key design, penetration / avalanche / stampede, multi-tier caches, replica lag, variable object sizes, non-stationary traffic.</li>
+          </ul>
+          <p>
+            References: <a href="https://arxiv.org/abs/1202.3974">Che approximation</a> · <a href="https://arxiv.org/abs/1704.04448">d-TTL / f-TTL</a> ·
+            <a href="https://arxiv.org/abs/2412.20221">cache freshness</a> · <a href="https://www.usenix.org/conference/osdi20/presentation/yang">Twitter cache workloads</a> ·
+            <a href="https://redis.io/docs/latest/develop/reference/eviction/">Redis eviction</a> · <a href="https://brooker.co.za/blog/2021/08/27/caches.html">Caches, modes and unstable systems</a>
+          </p>
+        </details>
+      </section>
+      <aside class="card" id="advisor">
+        <img id="amber" alt="Professor Amber, the cat teacher grading your Redis choices" />
+        <h2>Professor Amber says</h2>
+        <ul id="advice"></ul>
+      </aside>
+    </main>
     <script type="module" src="/src/ui/main.ts"></script>
   </body>
 </html>
