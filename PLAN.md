@@ -182,7 +182,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 
 **进度快照（2026-09-21，由主会话汇总；逐项状态以下方清单为准）**
 
-线上：https://limboantique.github.io/does-redis-help/ 与 `/exam.html`；main = `0b81d87` 之后，7 个测试文件 88 个测试全绿，CI 自动部署。
+线上：https://limboantique.github.io/does-redis-help/ 与 `/exam.html`；main = `da314b8` 之后，7 个测试文件 88 个测试全绿，CI 自动部署。
 
 | 阶段 / 轨道 | 状态 | 说明 |
 |---|---|---|
@@ -193,9 +193,9 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 | 集成 | ✅ 3/3 | 线上逐预设验收、🎲 压测、Pages 子路径下 Worker 均通过 |
 | 交付物 | ✅ 4/4 | D1 README 骨架、D2 README 定稿（含截图）、D3 视频提纲、D4 五份会话记录；**只剩视频录制需用户完成** |
 | 扩展 | ✅ 6/6 | X1a 规则集、X1b 面板、X2 吉祥物、X3 教育内容、X4 逐 rank 图、X5 考试页 |
-| 追加（集成后） | ✅ 15/15 | X6–X20：延迟图成为题眼、性价比指标、裁判面板、吉祥物统一风格、帮助按钮等 |
+| 追加（集成后） | ✅ 16/16 | X6–X21：延迟图成为题眼、性价比指标、裁判面板、吉祥物统一风格、帮助按钮等 |
 
-集成后追加的改动逐条列在下方清单的 **追加** 一节（X6–X20），全部已上线。
+集成后追加的改动逐条列在下方清单的 **追加** 一节（X6–X21），全部已上线。
 
 待用户判断：脏读率对"写与读同分布"假设很敏感（默认配置 60% 脏读）——目前写进 README 假设与页面 Assumptions；是否加"写分布独立"开关未定。
 
@@ -207,63 +207,64 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 - [x] **T0.3** Vite+TS+Vitest 脚手架、装齐全部依赖、`.gitignore`、`tsconfig`、`vite.config.ts`（`base:'./'`）— 依赖：无
 - [x] **T0.4** `src/contract/types.ts` + `src/contract/inputs.ts`（`INPUTS`、`DEFAULTS`）→ **协议冻结** — 依赖：T0.3
 - [x] **T0.5** 全部 stub（model/sim/worker/advisor/presets/main）+ 占位 `index.html`，`npm test`/`build` 绿 — 依赖：T0.4
-- [x] **T0.6** `deploy.yml` + 首次部署在公网 URL 验证 — 依赖：T0.2, T0.5 — 582b6ff，https://limboantique.github.io/does-redis-help/ 返回 200
+- [x] **T0.6** `deploy.yml` + 首次部署在公网 URL 验证 — 依赖：T0.2, T0.5 — 8fa0f2f，https://limboantique.github.io/does-redis-help/ 返回 200
 
 **轨道 A — 模型 → 预设与结论**
-- [x] **A1** `model.ts: evaluate()` — 依赖：T0.4 — 8962b6d
-- [x] **A2** `model.ts: curves()` — 依赖：A1 — 8962b6d
-- [x] **A3** `model.test.ts` 全绿 + 性能达标 → 合入 main，`model.ts` 移交轨道 B — 依赖：A1, A2 — 8962b6d
-- [x] **A4** `presets.ts` 5 个预设 — 依赖：A3 — 72c9d42
-- [x] **A5** `advisor.ts` 3 条结论规则 + 预设-结论一致性测试 — 依赖：A3, A4 — 72c9d42
+- [x] **A1** `model.ts: evaluate()` — 依赖：T0.4 — ac35b54
+- [x] **A2** `model.ts: curves()` — 依赖：A1 — ac35b54
+- [x] **A3** `model.test.ts` 全绿 + 性能达标 → 合入 main，`model.ts` 移交轨道 B — 依赖：A1, A2 — ac35b54
+- [x] **A4** `presets.ts` 5 个预设 — 依赖：A3 — 9f908f6
+- [x] **A5** `advisor.ts` 3 条结论规则 + 预设-结论一致性测试 — 依赖：A3, A4 — 9f908f6
 
 **轨道 B — 仿真 → 交叉验证与修正**
-- [x] **B1** (轨道 B) `sim.ts: simulate()` + `scaleForSim()` — 依赖：T0.4 — 330d195 (track/verify)；82e4184（已随 e236d5a 合入 main）：`scaleForSim` 按冷启动记忆时长分配事件预算，下限 100 key / 64 槽位，内存对齐到整数个 key
-- [x] **B2** (轨道 B) `sim.test.ts`（不依赖模型的自检）+ 性能 — 依赖：B1 — 330d195 (track/verify)；82e4184：增至 15 项（King 精确 LRU、多 key 闭式、单槽 Σp²、与朴素 Map 参考实现逐位一致、退化输入），8 个注入缺陷检出 7 个、另 1 个为等价变异
-- [x] **B3** (轨道 B) `worker.ts` — 依赖：B1 — 924197a (track/verify)
-- [x] **B4** (轨道 B) `cross.test.ts` 网格 — 依赖：B2, A3 — 3510bc0 (track/verify)；82e4184：网格加 T=1.5Tc（64 点，最大 0.35pp）；新增 Validate 路径 37 组配置（默认+5 预设+15 慢热配置+16 随机系统），最大 1.09pp
-- [x] **B5** (轨道 B) 修正 `model.ts` 直到网格偏差 ≤2pp，记录实测最大误差 — 依赖：B4 — 3510bc0 (track/verify)；model.ts 无需修改：48 点网格最大偏差 0.25pp，网格外探测（C=20、T=1.5Tc）最大 0.51pp
+- [x] **B1** (轨道 B) `sim.ts: simulate()` + `scaleForSim()` — 依赖：T0.4 — b900186 (track/verify)；bd07bfd（已随 60f111d 合入 main）：`scaleForSim` 按冷启动记忆时长分配事件预算，下限 100 key / 64 槽位，内存对齐到整数个 key
+- [x] **B2** (轨道 B) `sim.test.ts`（不依赖模型的自检）+ 性能 — 依赖：B1 — b900186 (track/verify)；bd07bfd：增至 15 项（King 精确 LRU、多 key 闭式、单槽 Σp²、与朴素 Map 参考实现逐位一致、退化输入），8 个注入缺陷检出 7 个、另 1 个为等价变异
+- [x] **B3** (轨道 B) `worker.ts` — 依赖：B1 — 69bd153 (track/verify)
+- [x] **B4** (轨道 B) `cross.test.ts` 网格 — 依赖：B2, A3 — beda7ce (track/verify)；bd07bfd：网格加 T=1.5Tc（64 点，最大 0.35pp）；新增 Validate 路径 37 组配置（默认+5 预设+15 慢热配置+16 随机系统），最大 1.09pp
+- [x] **B5** (轨道 B) 修正 `model.ts` 直到网格偏差 ≤2pp，记录实测最大误差 — 依赖：B4 — beda7ce (track/verify)；model.ts 无需修改：48 点网格最大偏差 0.25pp，网格外探测（C=20、T=1.5Tc）最大 0.51pp
 
 **轨道 C — UI（对着 stub 开发）**
-- [x] **C1** (轨道 C) 布局 + 由 `INPUTS` 生成的两张输入卡（system / redis 明确分开）— 依赖：T0.5 — ec37c2c (track/ui)
-- [x] **C2** (轨道 C) 🎲 按钮（`randomSystem()` 已在 M0 的 `inputs.ts` 里实现并测试） — 依赖：C1 — ec37c2c；连点 20 次无 NaN (track/ui)
-- [x] **C3** (轨道 C) `render()`：结论句 + 数字卡片 — 依赖：C1 — ec37c2c，§6.1 样式 489886c (track/ui)
-- [x] **C4** (轨道 C) 图①②③ — 依赖：C3 — 489886c；单次刷新实测 32–67ms，其中 `curves()` 约 44ms（UI 自身约 8ms），拖动经 rAF 合帧仍流畅，但未达 <50ms (track/ui)
-- [x] **C5** (轨道 C) Validate → Worker → parity 图④ — 依赖：C3（真实数据联调另需 B3） — 29c4e36；与 track/verify 临时合并实测：默认 + 5 预设最大偏差 0.73pp，每次 3–5s (track/ui)
-- [x] **C6** (轨道 C) 预设栏 + Assumptions 面板 + 手机布局 — 依赖：C3 — 489886c；375px 无横向滚动 (track/ui)
+- [x] **C1** (轨道 C) 布局 + 由 `INPUTS` 生成的两张输入卡（system / redis 明确分开）— 依赖：T0.5 — bdfa5a1 (track/ui)
+- [x] **C2** (轨道 C) 🎲 按钮（`randomSystem()` 已在 M0 的 `inputs.ts` 里实现并测试） — 依赖：C1 — bdfa5a1；连点 20 次无 NaN (track/ui)
+- [x] **C3** (轨道 C) `render()`：结论句 + 数字卡片 — 依赖：C1 — bdfa5a1，§6.1 样式 8958bbe (track/ui)
+- [x] **C4** (轨道 C) 图①②③ — 依赖：C3 — 8958bbe；单次刷新实测 32–67ms，其中 `curves()` 约 44ms（UI 自身约 8ms），拖动经 rAF 合帧仍流畅，但未达 <50ms (track/ui)
+- [x] **C5** (轨道 C) Validate → Worker → parity 图④ — 依赖：C3（真实数据联调另需 B3） — 1a70618；与 track/verify 临时合并实测：默认 + 5 预设最大偏差 0.73pp，每次 3–5s (track/ui)
+- [x] **C6** (轨道 C) 预设栏 + Assumptions 面板 + 手机布局 — 依赖：C3 — 8958bbe；375px 无横向滚动 (track/ui)
 
 **集成与交付**
-- [x] **I1** 合并三轨，`npm test` 全绿 — 依赖：A5, B5, C2, C4, C5, C6 — 086cb7a；三轨已合入 main，7 个测试文件 55 个测试全绿，交叉网格最大偏差 0.25pp
+- [x] **I1** 合并三轨，`npm test` 全绿 — 依赖：A5, B5, C2, C4, C5, C6 — 2386809；三轨已合入 main，7 个测试文件 55 个测试全绿，交叉网格最大偏差 0.25pp
 - [x] **I2** `preview` 下浏览器逐预设验收 + 🎲 压测 — 依赖：I1 — 线上验收：5 个预设结论句全部与标题一致；🎲 连点 30 次无 NaN/undefined，出现 5 种不同结论；无 console 报错
-- [x] **I3** 部署并在无痕窗口复测 Pages URL — 依赖：I2, T0.6 — 2671e92 已部署；`/` 与 `/exam.html` 均 200；Pages 子路径下 Worker 正常（Validate 2.8s，最大偏差 0.02pp，点落在对角线）；375px 无横向滚动。首次 push 因性能断言在 CI 上超时而失败，已放宽为本机 10 倍
-- [x] **D1** README 骨架（模型、假设、参考）— 依赖：T0.4 — 247164a；5 处 `TODO(author)` 留给用户定稿
-- [x] **D2** README 定稿（理由、取舍、实测误差、耗时；判断性内容由用户定稿）— 依赖：B5, I3 — 用户已定稿（设计取舍、扩展方向、耗时 2.5 小时）；截图 a1125d4（`docs/explorer.webp`、`docs/exam.png`）
-- [x] **D3** 视频提纲 — 依赖：I3 — 39344bc，`VIDEO.md`；末尾 1 处 `TODO(author)`
+- [x] **I3** 部署并在无痕窗口复测 Pages URL — 依赖：I2, T0.6 — 7b15b76 已部署；`/` 与 `/exam.html` 均 200；Pages 子路径下 Worker 正常（Validate 2.8s，最大偏差 0.02pp，点落在对角线）；375px 无横向滚动。首次 push 因性能断言在 CI 上超时而失败，已放宽为本机 10 倍
+- [x] **D1** README 骨架（模型、假设、参考）— 依赖：T0.4 — 660d7d7；5 处 `TODO(author)` 留给用户定稿
+- [x] **D2** README 定稿（理由、取舍、实测误差、耗时；判断性内容由用户定稿）— 依赖：B5, I3 — 用户已定稿（设计取舍、扩展方向、耗时 2.5 小时）；截图 fd4529d（`docs/explorer.webp`、`docs/exam.png`）
+- [x] **D3** 视频提纲 — 依赖：I3 — 67507ce，`VIDEO.md`；末尾 1 处 `TODO(author)`
 - [x] **D4** 导出 transcripts — 依赖：全部 — `claude_code_conversation/` 共 5 份：主会话（规划、协议、模型、集成、考试页、延迟图；46 轮用户消息、262 次工具调用）+ 吉祥物、页面风格调研、轨道 B 仿真验证、轨道 C UI。提交前均已扫描：无密钥/令牌，邮箱仅 `noreply@anthropic.com`。主会话记录截至导出时刻，之后的对话需重新导出覆盖
 
 **扩展（原计划内，6/6 完成）**
-- [x] **X1a** `advisor.ts` 完整规则集 — 依赖：A5 — e4659e9；共 12 条规则（3 bad / 8 warn / 1 good）
-- [x] **X1b** 右侧 Advisor 面板（渲染全部 `advise()` 条目）— 依赖：C3 — (轨道 C) 489886c (track/ui)
-- [x] **X2** (轨道 C) 吉祥物 Professor Amber 入驻 Advisor 面板，表情绑定 `level` — 依赖：X1b — 素材已精简（e4659e9）：`cat_teacher/face_{happy,thinking,stern,surprised}.svg`（同一 viewBox，可直接互换）+ `face_full_marks.svg`（同为大头风格，旁标 A+）；映射 good→happy、warn→thinking、bad→stern、DB 过载/承重墙→surprised、全部 good→face_full_marks — 19eb2cc (track/ui)
-- [x] **X3** 教育内容 — 依赖：I3 — e41a9fa；主页 `#lessons`：6 课（miss 比无缓存慢 / 容量是隐形 TTL / 中位动而尾部不动 / 脏读跟着热 key / 承重缓存与双稳态 / Redis 默认配置陷阱），其中 4 课带 Try it 按钮加载同名预设，附延伸阅读
-- [x] **X5** 考试页 `exam.html`：50 题题库（`src/engine/quiz.ts`，数字类题目由测试用 `evaluate()` 复核）→ 随机抽 5 道选择题 → 打分 + 逐题解释；专属监考吉祥物猫头鹰（`cat_teacher/proctor_*.svg`）— 依赖：A3；新增文件 `exam.html` `src/ui/exam.ts` `src/ui/exam.css` `test/quiz.test.ts`，并改 `vite.config.ts` 为多页 — f4fe2bd；浏览器验收通过（答题→交卷→打分/解释/猫头鹰表情，无 console 报错）
-- [x] **X4** 逐 rank 命中概率图 / LFU 对比 — 依赖：A3, C4 — 51eac81；图 “Which keys are cached”：逐 rank 命中概率（LRU 渐降）+ 累计流量 + 理想缓存（= 完美 LFU，钉住最热 key）的截止线；`engine/model.ts` 新增 `byRank()`，测试验证逐 rank 加权和等于总命中率。LFU 对比即此截止线与图①的 ideal 线，未另建 LFU 模型
+- [x] **X1a** `advisor.ts` 完整规则集 — 依赖：A5 — ab37b7a；共 12 条规则（3 bad / 8 warn / 1 good）
+- [x] **X1b** 右侧 Advisor 面板（渲染全部 `advise()` 条目）— 依赖：C3 — (轨道 C) 8958bbe (track/ui)
+- [x] **X2** (轨道 C) 吉祥物 Professor Amber 入驻 Advisor 面板，表情绑定 `level` — 依赖：X1b — 素材已精简（ab37b7a）：`cat_teacher/face_{happy,thinking,stern,surprised}.svg`（同一 viewBox，可直接互换）+ `face_full_marks.svg`（同为大头风格，旁标 A+）；映射 good→happy、warn→thinking、bad→stern、DB 过载/承重墙→surprised、全部 good→face_full_marks — 166355a (track/ui)
+- [x] **X3** 教育内容 — 依赖：I3 — b6e68f2；主页 `#lessons`：6 课（miss 比无缓存慢 / 容量是隐形 TTL / 中位动而尾部不动 / 脏读跟着热 key / 承重缓存与双稳态 / Redis 默认配置陷阱），其中 4 课带 Try it 按钮加载同名预设，附延伸阅读
+- [x] **X5** 考试页 `exam.html`：50 题题库（`src/engine/quiz.ts`，数字类题目由测试用 `evaluate()` 复核）→ 随机抽 5 道选择题 → 打分 + 逐题解释；专属监考吉祥物猫头鹰（`cat_teacher/proctor_*.svg`）— 依赖：A3；新增文件 `exam.html` `src/ui/exam.ts` `src/ui/exam.css` `test/quiz.test.ts`，并改 `vite.config.ts` 为多页 — b1e552c；浏览器验收通过（答题→交卷→打分/解释/猫头鹰表情，无 console 报错）
+- [x] **X4** 逐 rank 命中概率图 / LFU 对比 — 依赖：A3, C4 — 18d6b14；图 “Which keys are cached”：逐 rank 命中概率（LRU 渐降）+ 累计流量 + 理想缓存（= 完美 LFU，钉住最热 key）的截止线；`engine/model.ts` 新增 `byRank()`，测试验证逐 rank 加权和等于总命中率。LFU 对比即此截止线与图①的 ideal 线，未另建 LFU 模型
 
-**追加（集成后用户提出，15/15 完成；均已上线）**
-- [x] **X6** 延迟图成为题眼：**database only vs Redis + database**；列出 hit / miss / Redis down 三条路径、平均延迟盈亏平衡点（命中率 > Redis 延迟 ÷ DB 延迟）、各分位 Change 行（变慢标红）、命中率虚线；`engine/model.ts` 新增 `meanLatency()` 并有测试 — bca8917
-- [x] **X7** 延迟图移到第一张；横轴按数据自适应，并在两条曲线都到 100% 处收尾 — 330a09d、f060ca8
-- [x] **X8** 性价比指标卡片 **Cost per ms saved**（月费 ÷ 平均读延迟降低的毫秒数，附"内存翻倍"的边际值；变慢时显示"⚠ slower"）。已知局限：不计 DB 卸载的价值，也不乘流量 — 330a09d
-- [x] **X9** "Uniform access" 预设内存改为 250 MB，成为真正的负提升示例（各分位 +2%～+7%）— bca8917
-- [x] **X10** 验证图独立为"裁判"面板 **Can you trust these numbers?**：反色标题栏 + 双线边框，去掉 tooltip，说明文字与按钮放在图下方 — 44ac480
-- [x] **X11** 任何设置变化即清空仿真点、终止进行中的仿真，并提示重新运行 — c7bce70
-- [x] **X12** 吉祥物素材筛选：9 张原图 → 4 张可互换的大头表情；满分图重画为同一大头风格（`face_full_marks.svg`，旁标 A+）；`generate.py` 222 → 118 行 — e4659e9、b6d2985
-- [x] **X13** 监考吉祥物猫头鹰 Proctor Hoot（监考 / 偷瞄 / 及格 / 不及格四个表情）— 499302e（随 X5）
-- [x] **X14** 每个标题旁的 "!" 帮助按钮（白话解释），仅悬停时显示气泡，标记为正圆；图例右对齐 —（UI agent）64dabd9、8f0a5db、7bccfbd、fc12777
-- [x] **X15** 主页与考试页互相跳转的按钮放在各自吉祥物下方；页面标题放大，Advisor 面板滚动时保持可见 —（UI agent）ff11020、7980a0b、14865b1
-- [x] **X16** CI 性能断言放宽为本机实测的 10 倍（共享 runner 慢，首次部署因此失败过一次）— 2671e92
-- [x] **X17** 脏读的时间维度 **Stale age**：发生脏读时读到的值平均已过期多久（最坏情况 = TTL；不设 TTL 时为 ∞）。**协议新增字段** `Outputs.staleAgeSec`、`SimResult.staleAgeSec`（只增不改）；模型闭式解 `lifeMoment()`；仿真独立计量；交叉验证在可测的网格点上相对误差 ≤2.5%；数字卡片、Advisor 文案、第 4 课、README 同步 — da0a0cb
-- [x] **X18** 延迟图改为"百分位 × 延迟"：横轴百分位（刻度 0/25/50/75/90/99，与表格列对应），纵轴线性 ms、上限取较慢的 P99 × 1.15（不超过 150 ms）；命中率由横线改为竖线。此前两轮：CDF 采样到 200 ms、横轴定 150 ms（后被本项取代）— 316a4cf、e4c7ada、48f4ab2
-- [x] **X19** **Latency saved by Redis** 差值图：每个百分位上 DB only − (Redis + DB)，零线以上绿色 = 变快，以下红色 = 变慢（miss 多付一次 Redis 往返），带命中率虚线；`engine/model.ts` 新增 `latencyGap()`，测试验证命中率为 0 时每个百分位恰好慢一次 Redis 往返 — 648fa51、079dd56
-- [x] **X20** 仿真加固（验证 agent）：`scaleForSim` 按冷启动时长分配事件预算、缓存槽位下限 64；新增"Validate 按钮路径"测试（默认、全部预设、慢热边界、16 个随机系统）— 82e4184、e236d5a
+**追加（集成后用户提出，16/16 完成；均已上线）**
+- [x] **X6** 延迟图成为题眼：**database only vs Redis + database**；列出 hit / miss / Redis down 三条路径、平均延迟盈亏平衡点（命中率 > Redis 延迟 ÷ DB 延迟）、各分位 Change 行（变慢标红）、命中率虚线；`engine/model.ts` 新增 `meanLatency()` 并有测试 — 42accf6
+- [x] **X7** 延迟图移到第一张；横轴按数据自适应，并在两条曲线都到 100% 处收尾 — b67476a、a020bce
+- [x] **X8** 性价比指标卡片 **Cost per ms saved**（月费 ÷ 平均读延迟降低的毫秒数，附"内存翻倍"的边际值；变慢时显示"⚠ slower"）。已知局限：不计 DB 卸载的价值，也不乘流量 — b67476a
+- [x] **X9** "Uniform access" 预设内存改为 250 MB，成为真正的负提升示例（各分位 +2%～+7%）— 42accf6
+- [x] **X10** 验证图独立为"裁判"面板 **Can you trust these numbers?**：反色标题栏 + 双线边框，去掉 tooltip，说明文字与按钮放在图下方 — 940524d
+- [x] **X11** 任何设置变化即清空仿真点、终止进行中的仿真，并提示重新运行 — 1246205
+- [x] **X12** 吉祥物素材筛选：9 张原图 → 4 张可互换的大头表情；满分图重画为同一大头风格（`face_full_marks.svg`，旁标 A+）；`generate.py` 222 → 118 行 — ab37b7a、c88836f
+- [x] **X13** 监考吉祥物猫头鹰 Proctor Hoot（监考 / 偷瞄 / 及格 / 不及格四个表情）— 11c59e4（随 X5）
+- [x] **X14** 每个标题旁的 "!" 帮助按钮（白话解释），仅悬停时显示气泡，标记为正圆；图例右对齐 —（UI agent）1b7dade、9eadd41、a3b7f80、f3aab64
+- [x] **X15** 主页与考试页互相跳转的按钮放在各自吉祥物下方；页面标题放大，Advisor 面板滚动时保持可见 —（UI agent）8e9dc1e、f906ca0、aafce9c
+- [x] **X16** CI 性能断言放宽为本机实测的 10 倍（共享 runner 慢，首次部署因此失败过一次）— 7b15b76
+- [x] **X17** 脏读的时间维度 **Stale age**：发生脏读时读到的值平均已过期多久（最坏情况 = TTL；不设 TTL 时为 ∞）。**协议新增字段** `Outputs.staleAgeSec`、`SimResult.staleAgeSec`（只增不改）；模型闭式解 `lifeMoment()`；仿真独立计量；交叉验证在可测的网格点上相对误差 ≤2.5%；数字卡片、Advisor 文案、第 4 课、README 同步 — ec2605f
+- [x] **X18** 延迟图改为"百分位 × 延迟"：横轴百分位（刻度 0/25/50/75/90/99，与表格列对应），纵轴线性 ms、上限取较慢的 P99 × 1.15（不超过 150 ms）；命中率由横线改为竖线。此前两轮：CDF 采样到 200 ms、横轴定 150 ms（后被本项取代）— 589286b、aac3651、e68f66b
+- [x] **X19** **Latency saved by Redis** 差值图：每个百分位上 DB only − (Redis + DB)，零线以上绿色 = 变快，以下红色 = 变慢（miss 多付一次 Redis 往返），带命中率虚线；`engine/model.ts` 新增 `latencyGap()`，测试验证命中率为 0 时每个百分位恰好慢一次 Redis 往返 — 2b0b58b、c0f3e39
+- [x] **X20** 仿真加固（验证 agent）：`scaleForSim` 按冷启动时长分配事件预算、缓存槽位下限 64；新增"Validate 按钮路径"测试（默认、全部预设、慢热边界、16 个随机系统）— bd07bfd、60f111d
+- [x] **X21** 仓库整理：作业 PDF 从仓库及全部 git 历史中移除（`git filter-repo`，所有 commit hash 因此改变，本文件中的 hash 已按映射表更新；`claude_code_conversation/` 里的 hash 是当时的历史记录，保持原样）；PDF 保留在本地并加入 `.gitignore`；GitHub 仓库由 `Anthropic` 改名为 `does-redis-help`，线上地址相应变为 https://limboantique.github.io/does-redis-help/
 
 ## 9. 扩展（全部完成，逐项状态见 §8 清单）
 
@@ -272,7 +273,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 - [x] MX3 教育内容："为什么容量就是一个隐形 TTL"、noeviction 陷阱、Brooker 双稳态。
 - [x] MX4 按 rank 的逐 key 命中概率图；LFU 对比。
 - [x] MX5 考试页：50 题题库随机抽 5 题、打分与逐题解释，监考猫头鹰 Proctor Hoot；题库里的数值结论由测试用 `evaluate()` 复核。
-- [x] 集成后的追加见 §8 的 X6–X20。
+- [x] 集成后的追加见 §8 的 X6–X21。
 
 **保持不做**：key 设计、穿透/雪崩/多级缓存、对象大小差异、副本滞后；另加非平稳流量（IRM 假设）。
 
