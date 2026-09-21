@@ -1,4 +1,4 @@
-import type { Curves, Outputs, Params } from './types'
+import type { Curves, Outputs, Params } from '../contract/types'
 
 // STUB: placeholder shapes so the UI can be built against the contract; hit rate is just capacity / keys
 const miss = (p: Params, memGB = p.redis.memGB) => Math.max(0, 1 - (memGB * 1e9) / ((p.sys.objBytes + 100) * p.sys.keys))

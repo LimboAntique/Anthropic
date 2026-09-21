@@ -1,5 +1,5 @@
 import { evaluate } from './model'
-import type { Params, SimRequest, SimResult } from './types'
+import type { Params, SimRequest, SimResult } from '../contract/types'
 
 // STUB: echoes the model with a small seeded offset instead of simulating
 export function simulate(r: SimRequest): SimResult {

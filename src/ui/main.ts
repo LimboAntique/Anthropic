@@ -1,6 +1,6 @@
-import { advise } from './advisor'
-import { DEFAULTS } from './inputs'
-import { evaluate } from './model'
+import { advise } from '../engine/advisor'
+import { DEFAULTS } from '../contract/inputs'
+import { evaluate } from '../engine/model'
 import './style.css'
 
 // STUB: dumps the default evaluation to prove the contract is wired end to end

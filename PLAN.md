@@ -30,7 +30,7 @@ TypeScript + **Vite 6**（`base: './'`；本机 Node 20.12 装不了 Vite 8 / Vi
 
 ## 4. 协议（M0 产出，之后冻结）
 
-`src/types.ts` —— **输入明确分为"系统配置（给定）"与"Redis 配置（待评审的选择）"**：
+`src/contract/types.ts` —— **输入明确分为"系统配置（给定）"与"Redis 配置（待评审的选择）"**：
 
 ```ts
 export interface SystemConfig {        // the system being designed: workload + backing DB
@@ -67,18 +67,20 @@ export interface InputSpec { key: string; group: 'system' | 'redis'; label: stri
   min: number; max: number; log: boolean; random?: [number, number] }  // random: plausible range for the dice button
 ```
 
+目录：`src/contract/`（冻结的协议）· `src/engine/`（算法，无 DOM，轨道 A/B）· `src/ui/`（页面，轨道 C）。下文未带目录的文件名均按此归位。
+
 模块签名（M0 先放 stub，全部可编译、可被 UI 调用）：
 
 | 文件 | 导出 | 所有者 |
 |---|---|---|
-| `src/types.ts` | 上述类型 | M0 → **冻结**（要改必须停下上报） |
-| `src/inputs.ts` | `INPUTS: InputSpec[]`、`DEFAULTS: Params`；`randomSystem(): SystemConfig` | M0 → 轨道 C |
-| `src/model.ts` | `evaluate(p): Outputs`、`curves(p): Curves` | 轨道 A → 完成后移交轨道 B |
-| `src/sim.ts` | `simulate(r): SimResult`、`scaleForSim(p, maxKeys=1e6): Params` | 轨道 B |
-| `src/worker.ts` | `onmessage: SimRequest → SimResult` | 轨道 B |
-| `src/advisor.ts` | `advise(p, o): Advice[]`（按严重度排序，`[0]` 即一句话结论） | A 完成后接手 |
-| `src/presets.ts` | `PRESETS: {name, blurb, params}[]` | A 完成后接手 |
-| `index.html` `src/main.ts` `src/style.css` | UI | 轨道 C |
+| `src/contract/types.ts` | 上述类型 | M0 → **冻结**（要改必须停下上报） |
+| `src/contract/inputs.ts` | `INPUTS: InputSpec[]`、`DEFAULTS: Params`；`randomSystem(): SystemConfig` | M0 → 轨道 C |
+| `src/engine/model.ts` | `evaluate(p): Outputs`、`curves(p): Curves` | 轨道 A → 完成后移交轨道 B |
+| `src/engine/sim.ts` | `simulate(r): SimResult`、`scaleForSim(p, maxKeys=1e6): Params` | 轨道 B |
+| `src/engine/worker.ts` | `onmessage: SimRequest → SimResult` | 轨道 B |
+| `src/engine/advisor.ts` | `advise(p, o): Advice[]`（按严重度排序，`[0]` 即一句话结论） | A 完成后接手 |
+| `src/engine/presets.ts` | `PRESETS: {name, blurb, params}[]` | A 完成后接手 |
+| `index.html` `src/ui/main.ts` `src/ui/style.css` | UI | 轨道 C |
 | `test/model.test.ts` / `test/sim.test.ts` `test/cross.test.ts` | | A / B |
 
 输入规格（M0 转录进 `inputs.ts`）：
@@ -160,14 +162,14 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 - [x] **T0.1** GitHub 公开仓库 + remote（`https://github.com/LimboAntique/Anthropic`）— 依赖：无 — 用户已完成
 - [x] **T0.2** 开启 GitHub Pages，Source = GitHub Actions（当前 Pages API 返回 404，即尚未开启；属账号设置，需用户操作或明确授权）— 依赖：T0.1
 - [x] **T0.3** Vite+TS+Vitest 脚手架、装齐全部依赖、`.gitignore`、`tsconfig`、`vite.config.ts`（`base:'./'`）— 依赖：无
-- [x] **T0.4** `src/types.ts` + `src/inputs.ts`（`INPUTS`、`DEFAULTS`）→ **协议冻结** — 依赖：T0.3
+- [x] **T0.4** `src/contract/types.ts` + `src/contract/inputs.ts`（`INPUTS`、`DEFAULTS`）→ **协议冻结** — 依赖：T0.3
 - [x] **T0.5** 全部 stub（model/sim/worker/advisor/presets/main）+ 占位 `index.html`，`npm test`/`build` 绿 — 依赖：T0.4
-- [~] **T0.6** (M0：`deploy.yml` 已写好，等 T0.2 与 push) `deploy.yml` + 首次部署在公网 URL 验证 — 依赖：T0.2, T0.5
+- [x] **T0.6** `deploy.yml` + 首次部署在公网 URL 验证 — 依赖：T0.2, T0.5 — 582b6ff，https://limboantique.github.io/Anthropic/ 返回 200
 
 **轨道 A — 模型 → 预设与结论**
-- [ ] **A1** `model.ts: evaluate()` — 依赖：T0.4
-- [ ] **A2** `model.ts: curves()` — 依赖：A1
-- [ ] **A3** `model.test.ts` 全绿 + 性能达标 → 合入 main，`model.ts` 移交轨道 B — 依赖：A1, A2
+- [~] **A1** (轨道 A，主会话) `model.ts: evaluate()` — 依赖：T0.4
+- [~] **A2** (轨道 A，主会话) `model.ts: curves()` — 依赖：A1
+- [~] **A3** (轨道 A，主会话) `model.test.ts` 全绿 + 性能达标 → 合入 main，`model.ts` 移交轨道 B — 依赖：A1, A2
 - [ ] **A4** `presets.ts` 5 个预设 — 依赖：A3
 - [ ] **A5** `advisor.ts` 3 条结论规则 + 预设-结论一致性测试 — 依赖：A3, A4
 

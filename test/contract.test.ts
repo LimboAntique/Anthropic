@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
-import { DEFAULTS, INPUTS, randomSystem } from '../src/inputs'
-import { curves, evaluate } from '../src/model'
-import { scaleForSim, simulate } from '../src/sim'
+import { DEFAULTS, INPUTS, randomSystem } from '../src/contract/inputs'
+import { curves, evaluate } from '../src/engine/model'
+import { scaleForSim, simulate } from '../src/engine/sim'
 
 const all = (p: typeof DEFAULTS): Record<string, unknown> => ({ ...p.sys, ...p.redis })
 
