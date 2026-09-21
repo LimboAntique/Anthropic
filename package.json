@@ -1,0 +1,17 @@
+{
+  "name": "redis-cache-explorer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@observablehq/plot": "^0.6.17",
+    "typescript": "^7.0.2",
+    "vite": "^6.4.3",
+    "vitest": "^3.2.7"
+  }
+}
