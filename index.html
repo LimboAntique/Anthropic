@@ -73,7 +73,7 @@
           </details>
           <details>
             <summary>4. Staleness follows the hot keys, not the write ratio</summary>
-            <p>If writes only go to the database, a cached value stays wrong until its TTL fires. How often that happens to a key depends on how many times it is rewritten during one TTL, that is, its own write rate &times; TTL. Popular keys tend to be written most, so they are rewritten many times per TTL, and they are also the keys that serve most reads. One write per hundred reads with a one hour TTL can leave most reads stale. The remedies both cost misses: a shorter TTL, or deleting the key on every write.</p>
+            <p>If writes only go to the database, a cached value stays wrong until its TTL fires. How often that happens to a key depends on how many times it is rewritten during one TTL, that is, its own write rate &times; TTL. Popular keys tend to be written most, so they are rewritten many times per TTL, and they are also the keys that serve most reads. One write per hundred reads with a one hour TTL can leave most reads stale. How stale matters as much as how often: <i>Stale age</i> is how long ago the database value changed when an old copy is served, and its worst case is the TTL. Without a TTL a hot key is never evicted, so its stale copy is never corrected. The remedies both cost misses: a shorter TTL, or deleting the key on every write.</p>
             <p><button type="button" data-preset="Hot keys are written too">Try it: Hot keys are written too</button> Shorten the TTL, then switch <i>On write</i> to invalidate, and watch stale reads trade against misses.</p>
           </details>
           <details>

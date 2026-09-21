@@ -115,3 +115,16 @@ test('per-rank hit probabilities fall with rank and add up to the overall hit ra
     expect(capacity).toBeLessThanOrEqual(p.sys.keys)
   }
 })
+
+test('stale age matches the closed form for a fixed timer and is unbounded without a TTL', () => {
+  // One key, no eviction: reads land uniformly over [0,T]; a read at age t is t - (1 - e^{-wt})/w out of date
+  const [T, w] = [100, 0.05]
+  const fresh = (1 - Math.exp(-w * T)) / w
+  const expected = ((T * T) / 2 - (T - fresh) / w) / (T - fresh)
+  const o = evaluate(mk({ keys: 1000, alpha: 0, rps: 1000, wps: 1000 * w }, { memGB: 10, ttlSec: T }))
+  expect(o.evictionAgeSec).toBe(Infinity)
+  expect(o.staleAgeSec).toBeCloseTo(expected, 6)
+  expect(o.staleAgeSec).toBeLessThan(T)
+  expect(evaluate(mk({ wps: 100 }, { ttlSec: Infinity })).staleAgeSec).toBe(Infinity)
+  expect(evaluate(mk({ wps: 100 }, { writePolicy: 'invalidate' })).staleAgeSec).toBe(0)
+})

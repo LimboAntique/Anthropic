@@ -49,6 +49,7 @@ export function simulate(r: SimRequest): SimResult {
 
   const state = new Uint8Array(n) // 0 absent, 1 fresh, 2 stale
   const born = new Float64Array(n) // insertion time
+  const dirtied = new Float64Array(n) // time of the first write since insertion
   const lru = new List(n) // recency order
   const fifo = new List(n) // insertion order, which is also expiry order
   let size = 0
@@ -59,7 +60,7 @@ export function simulate(r: SimRequest): SimResult {
     size--
   }
 
-  let now = 0, reads = 0, hits = 0, stale = 0
+  let now = 0, reads = 0, hits = 0, stale = 0, age = 0
   for (let i = 0; i < r.requests; i++) {
     now -= Math.log(1 - rand()) / rate
     for (let k = fifo.next[n]; k !== n && born[k] + redis.ttlSec <= now; k = fifo.next[n]) drop(k)
@@ -70,7 +71,8 @@ export function simulate(r: SimRequest): SimResult {
       cdf[mid] > u ? (hi = mid) : (k = mid + 1)
     }
     if (rand() * rate < sys.wps) {
-      if (state[k]) invalidate ? drop(k) : (state[k] = 2)
+      if (invalidate && state[k]) drop(k)
+      else if (state[k] === 1) (state[k] = 2), (dirtied[k] = now)
       continue
     }
     const measured = i >= r.requests / 2
@@ -78,7 +80,8 @@ export function simulate(r: SimRequest): SimResult {
     if (state[k]) {
       lru.remove(k)
       lru.push(k)
-      if (measured) hits++, (stale += state[k] - 1)
+      if (measured) hits++
+      if (measured && state[k] === 2) stale++, (age += now - dirtied[k])
     } else if (cap >= 1) {
       if (size === cap) drop(lru.next[n])
       state[k] = 1
@@ -88,7 +91,7 @@ export function simulate(r: SimRequest): SimResult {
       size++
     }
   }
-  return { id: r.id, missRate: 1 - hits / reads, staleRate: stale / reads }
+  return { id: r.id, missRate: 1 - hits / reads, staleRate: stale / reads, staleAgeSec: stale ? age / stale : 0 }
 }
 
 // Shrinks keys, memory and traffic by one factor so per-key request rates and the cached fraction are preserved

@@ -37,6 +37,7 @@ export interface Percentiles {
 export interface Outputs {
   missRate: number
   staleRate: number // fraction of all reads served stale
+  staleAgeSec: number // how long the returned value had been out of date, averaged over stale reads; Infinity if never corrected
   evictionAgeSec: number // Che characteristic time Tc; Infinity when memory never fills
   binding: 'ttl' | 'capacity' // 'capacity' when Tc < ttlSec
   memUsedGB: number
@@ -63,6 +64,7 @@ export interface SimResult {
   id: number
   missRate: number
   staleRate: number
+  staleAgeSec: number // mean time since the overwriting write, over stale reads; 0 when there were none
 }
 
 export interface Advice {

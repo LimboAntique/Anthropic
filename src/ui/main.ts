@@ -55,6 +55,7 @@ const HELP: Record<string, string> = {
   timeoutMs: 'How long the application waits for Redis before giving up and asking the database. It is only paid while Redis is down.',
   'Hit rate': 'Share of reads answered by Redis without touching the database. The rest are misses, which pay for Redis and the database.',
   'Stale reads': 'Share of reads that return an old value, because the key was updated in the database after it was cached.',
+  'Stale age': 'How wrong a stale read is, in time: when a read returns an outdated value, how long ago the database value changed, on average. Stale reads says how often you serve old data; this says how old. 60% stale but 3 seconds old may be fine; 1% stale but a day old may not be. The worst case is the TTL, because nothing else ever removes a stale copy of a hot key.',
   'P50 latency': 'The typical read: half of all reads finish faster than this. Compare it with the database-only figure underneath.',
   'P99 latency': 'The slow tail: 1 read in 100 is slower than this. While more than 1% of reads miss, the slowest 1% are all misses, and a miss costs Redis plus a database read.',
   'Cost per ms saved': 'Value for money: the monthly Redis bill divided by the milliseconds it takes off the average read (database only minus Redis + database). Lower is better. The second figure is the same ratio for the next doubling of memory: when it is much higher than the first, you are past the point where more memory pays. If Redis makes the average read slower there is nothing to divide by, and you are paying for a slowdown.',
@@ -187,6 +188,7 @@ function render() {
   const tiles = [
     ['Hit rate', pct(1 - o.missRate), `miss ${pct(o.missRate)}`],
     ['Stale reads', pct(o.staleRate), redis.writePolicy === 'invalidate' ? 'writes delete the key' : 'of all reads'],
+    ['Stale age', o.staleRate > 0 ? (o.staleAgeSec === Infinity ? '⚠ ∞' : dur(o.staleAgeSec)) : '–', o.staleRate > 0 ? `out of date, per stale read · worst case ${redis.ttlSec === Infinity ? 'unbounded: no TTL ever corrects it' : dur(redis.ttlSec) + ' (the TTL)'}` : 'nothing is served stale'],
     ['P50 latency', ms(o.latency.p50), `${ms(o.baseline.p50)} without Redis`],
     ['P99 latency', ms(o.latency.p99), `${ms(o.baseline.p99)} without Redis`],
     ['Cost per ms saved', saved > 0 ? `$${si(o.costPerMonth / saved)}` : '⚠ slower', saved > 0 ? `avg read ${ms(mean.db)} → ${ms(mean.withCache)} · ${next}` : `$${si(o.costPerMonth)}/month to make the average read ${ms(-saved)} slower`],

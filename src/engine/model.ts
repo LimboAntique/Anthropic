@@ -25,10 +25,20 @@ export function life(lam: number, w: number, T: number, Tc: number): number {
   return seg(w, Tc) + Math.exp(-w * Tc) * seg(w + 1 / m, T - Tc)
 }
 
+// First moment of the cached lifetime: integral over [0,T] of t P(L>t), with the same L = Tc + Exp(m) as life()
+export function lifeMoment(lam: number, T: number, Tc: number): number {
+  if (T <= Tc) return (T * T) / 2
+  const m = Math.expm1(lam * Tc) / lam - Tc, a = T - Tc, x = a / m
+  if (a === Infinity) return m === Infinity ? Infinity : (Tc * Tc) / 2 + Tc * m + m * m
+  const tail = x < 1e-4 ? Tc * a + (a * a) / 2 : Tc * m * -Math.expm1(-x) + m * m * (1 - Math.exp(-x) * (1 + x))
+  return (Tc * Tc) / 2 + tail
+}
+
 interface Solved {
   tc: number
   hit: number
   stale: number
+  staleAge: number // mean seconds a stale read's value has been out of date
   used: number // expected number of cached keys
 }
 
@@ -38,16 +48,21 @@ function aggregate(p: Params, b: { n: number; p: number }[]) {
   const T = p.redis.ttlSec
   const inval = p.redis.writePolicy === 'invalidate'
   return (tc: number): Solved => {
-    let hit = 0, stale = 0, used = 0
+    let hit = 0, stale = 0, used = 0, age = 0
     for (const { n, p: pi } of b) {
       const lam = rps * pi, w = wps * pi
       const l0 = inval ? 0 : life(lam, 0, T, tc), lw = w > 0 || inval ? life(lam, w, T, tc) : l0
       const o = 1 - 1 / (1 + lam * (inval ? lw : l0)) // occupancy equals hit probability (PASTA)
       hit += n * pi * o
       used += n * o
-      if (!inval && w > 0) stale += n * pi * o * (1 - lw / l0)
+      if (!inval && w > 0) {
+        stale += n * pi * o * (1 - lw / l0)
+        // A read at cache age t is E[(t - first write)+] = t - (1 - e^{-wt})/w out of date; integrate over the lifetime, per cycle
+        const perCycle = lifeMoment(lam, T, tc) - (l0 - lw) / w
+        age += l0 === Infinity ? (perCycle === Infinity ? Infinity : 0) : (n * pi * o * perCycle) / l0
+      }
     }
-    return { tc, hit, stale, used }
+    return { tc, hit, stale, staleAge: stale > 0 ? age / stale : 0, used }
   }
 }
 
@@ -118,6 +133,7 @@ export function evaluate(p: Params): Outputs {
   return {
     missRate: 1 - s.hit,
     staleRate: s.stale,
+    staleAgeSec: s.staleAge,
     evictionAgeSec: s.tc,
     binding: s.tc < redis.ttlSec ? 'capacity' : 'ttl',
     memUsedGB: (s.used * (sys.objBytes + OVERHEAD)) / 1e9,
