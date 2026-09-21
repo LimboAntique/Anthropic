@@ -23,8 +23,8 @@ function start() {
   scrollTo(0, 0)
 }
 
-// The owl glances sideways while the paper is half done
-paper.onchange = () => answered() < sheet.length && proctor(answered() % 2 ? 'peeking' : 'watching', `${answered()} of ${sheet.length} answered. I am watching.`)
+// The owl glances sideways on every other answer
+paper.onchange = () => proctor(answered() % 2 ? 'peeking' : 'watching', answered() < sheet.length ? `${answered()} of ${sheet.length} answered. I am watching.` : 'All answered. Hand it in when you are sure.')
 
 paper.onsubmit = (e) => {
   e.preventDefault()
