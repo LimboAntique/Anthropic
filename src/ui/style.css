@@ -17,6 +17,9 @@ small, figcaption, #dataset, #sim-status, details { color: var(--muted); font-si
 a { color: var(--given); }
 button, select { font: inherit; color: inherit; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 8px; padding: 3px 10px; cursor: pointer; }
 button:hover { background: var(--choice-bg); }
+/* Page-to-page navigation, shown under each page's mascot */
+a.button { display: block; margin: 8px 0 12px; padding: 8px 12px; border-radius: 8px; background: var(--ink); color: var(--paper); font: 600 15px system-ui, sans-serif; text-align: center; text-decoration: none; }
+a.button:hover { background: var(--given); }
 #presets { display: flex; flex-wrap: wrap; gap: 6px; }
 #blurb { min-height: 1.45em; font-style: italic; }
 
