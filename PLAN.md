@@ -116,7 +116,7 @@ Tc:  二分解 Σ o_i(Tc) = C；若 Σ o_i(∞) ≤ C → Tc=∞, memUsed = Σo_
 hit = Σ p_i·o_i
 stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate → 0
 ```
-- 分箱：前 512 个 rank 逐个，其后几何分箱（比率≈1.05）；`evaluate`<2ms，`curves`<30ms。
+- 分箱：前 256 个 rank 逐个，其后几何分箱（比率 1.1，1e9 key 共 415 箱）；实测 `evaluate` 0.9ms、`curves` 44ms（测试上限 5ms / 60ms）。
 - `missVsMem` 以 Tc 为参数直接扫，不逐点求根；`ideal` = top-C 的 Σp_i。
 - 延迟：对数正态（μ=ln p50，σ=ln(p99/p50)/2.326）；三类混合 —— hit=Redis；miss=DB 右移 Redis p50；Redis down（权重 1-A）=DB 右移 timeout；混合 CDF 上二分取分位；baseline=仅 DB。
 - dbLoad：`(rps·miss+wps)/cap`、`(rps+wps)/cap`（noCache 与 redisDown 同式，分开字段便于 UI 表述）。
@@ -128,6 +128,30 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 - 图：① miss vs 内存（GB/$ 双轴；当前点；ideal 线）② miss 与 stale vs TTL（竖线标 Tc 与当前 TTL）③ 延迟 CDF 有/无缓存 ④ **模型-仿真 parity 图**（x=模型、y=仿真、对角线；点在线上即可信）。
 - Validate：`scaleForSim(params)` → 当前点 + 4 个内存 + 4 个 TTL 共 9 组；每组 `evaluate()` 与 Worker `simulate()` 成对画进图④（统一一条代码路径，无论是否缩放）。
 - 预设栏读 `PRESETS`；结论句读 `advise()[0]`；"Assumptions & non-goals"折叠面板。界面与 README 用英文。
+
+### 6.1 视觉风格：Classroom paper（已与用户确认）
+
+调研依据：讲解器要**引导注意力**（Bret Victor）→ 结论句最显眼、图在其下；**颜色只表示含义**（Distill / Ciechanowski / samwho）；**先引导再放开**（Nicky Case）→ 预设 = 引导，🎲+滑块 = 试验场。配色直接取自 `cat_teacher/generate.py`，使吉祥物（X2）与页面是同一套设计语言。
+
+全部颜色定义为 `style.css` 的 `:root` 变量，别处不写裸 hex：
+
+| 变量 | 值 | 含义（全页唯一用途） |
+|---|---|---|
+| `--paper` | `#FBF8F3` | 页面底色 |
+| `--ink` | `#2B2320` | 正文、坐标轴、1.5px 卡片描边 |
+| `--given` / `--given-bg` | `#33415C` / `#E6E9F0` | ① Your system：卡片、滑块、标签 |
+| `--choice` / `--choice-bg` | `#D98A45` / `#F7EBDD` | ② Your Redis choices：卡片、滑块；**图中"你的配置"曲线与当前点**；结论句里的参数值 |
+| `--good` / `--good-bg` | `#5B7F62` / `#E4EAE4` | `level: good`；图中 ideal 线（虚线）；Advisor 面板底色 |
+| `--warn` | `#C9A24B` | `level: warn` |
+| `--bad` | `#8C2F39` | `level: bad`；超载/变差的数字。不作他用 |
+| `--muted` | `#8A8078` | 无缓存 baseline 曲线、次要文字、网格线 |
+
+- 字体：标题与结论句用衬线（`Georgia, 'Iowan Old Style', serif`），结论句斜体、为全页最大字号；控件、数字卡片、图标注用 `system-ui`；数字加 `font-variant-numeric: tabular-nums`。不引入 web font。
+- 卡片：`--ink` 1.5px 描边、8px 圆角、平涂无阴影无渐变（与吉祥物的描边画风一致）。
+- 结论句中出现的用户所选参数值（内存、TTL 等）用 `--choice` 色 + 虚线下划线，与 ② 卡片呼应，让人一眼看出"句子里哪些数字是我选的"。
+- 4 张图共用同一映射：`--choice` 实线 = 你的配置，`--good` 虚线 = ideal，`--muted` = baseline，Tc 竖线用 `--ink` 虚线；Plot 背景透明、坐标轴 `--ink`。图④ parity 点用 `--choice`，对角线用 `--muted`。
+- Advisor 面板（X1b）：每条建议前缀 ✓ / △ / ✗ 对应 good / warn / bad 三色，呈现为"老师批改"。
+- 克制：除上表外不加装饰色、不加插画、不用 emoji 以外的图标；避免显得幼稚。
 
 ## 7. 执行编排
 
@@ -156,6 +180,19 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 
 ## 8. TODO（所有 agent 共享的状态表）
 
+**进度快照（2026-09-20，由主会话汇总；逐项状态以下方清单为准）**
+
+| 阶段 / 轨道 | 状态 | 说明 |
+|---|---|---|
+| 阶段 0 脚手架与协议 | ✅ 6/6 | 已部署 https://limboantique.github.io/Anthropic/（目前为占位页）；目录拆为 `contract/` `engine/` `ui/` |
+| 轨道 A 模型 → 预设与结论 | ✅ 5/5 | main 上 `8962b6d`、`72c9d42`（本地，未 push）；18 个测试全绿；`evaluate` 0.9ms / `curves` 44ms |
+| 轨道 B 仿真 → 交叉验证 | ✅ 5/5 | 分支 `track/verify`（`3510bc0`，待合入 main）；**模型无需修改**：48 点网格最大偏差 0.25pp，网格外 0.51pp |
+| 轨道 C UI | 🔄 0/6 进行中 | worktree `Anthropic-ui`，改动尚未提交；关键路径在此 |
+| 集成与交付 | ⏳ 0/7 | I1 等 C 完成；D1（README 骨架）依赖已满足，可随时开始 |
+| 扩展 | ⏳ 0/5 | X1a（完整点评规则）依赖已满足，可随时开始 |
+
+待用户判断：① 脏读率对"写与读同分布"假设很敏感（默认配置 60% 脏读）——保留并写进假设面板，还是加"写分布独立"开关；② "P99 在 miss<1% 前不改善"应表述为"P99 仍是一次 DB 读（DB 的 1−0.01/miss 分位）"。
+
 规则：**依赖全部 `[x]` 才能开工**；开工时把 `[ ]` 改成 `[~]` 并写上轨道名；完成且验收通过后改成 `[x]` 并在行尾附 commit hash；**只改自己那一行**。唯一状态源是主目录的 `/Users/blakexu/Documents/PythonProjects/Anthropic/PLAN.md`：所有 agent（包括在 worktree 里的）都按这个绝对路径读写，不要改 worktree 内的副本。
 
 **阶段 0 — 脚手架与协议（串行）**
@@ -167,47 +204,48 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 - [x] **T0.6** `deploy.yml` + 首次部署在公网 URL 验证 — 依赖：T0.2, T0.5 — 582b6ff，https://limboantique.github.io/Anthropic/ 返回 200
 
 **轨道 A — 模型 → 预设与结论**
-- [~] **A1** (轨道 A，主会话) `model.ts: evaluate()` — 依赖：T0.4
-- [~] **A2** (轨道 A，主会话) `model.ts: curves()` — 依赖：A1
-- [~] **A3** (轨道 A，主会话) `model.test.ts` 全绿 + 性能达标 → 合入 main，`model.ts` 移交轨道 B — 依赖：A1, A2
-- [ ] **A4** `presets.ts` 5 个预设 — 依赖：A3
-- [ ] **A5** `advisor.ts` 3 条结论规则 + 预设-结论一致性测试 — 依赖：A3, A4
+- [x] **A1** `model.ts: evaluate()` — 依赖：T0.4 — 8962b6d
+- [x] **A2** `model.ts: curves()` — 依赖：A1 — 8962b6d
+- [x] **A3** `model.test.ts` 全绿 + 性能达标 → 合入 main，`model.ts` 移交轨道 B — 依赖：A1, A2 — 8962b6d
+- [x] **A4** `presets.ts` 5 个预设 — 依赖：A3 — 72c9d42
+- [x] **A5** `advisor.ts` 3 条结论规则 + 预设-结论一致性测试 — 依赖：A3, A4 — 72c9d42
 
 **轨道 B — 仿真 → 交叉验证与修正**
-- [ ] **B1** `sim.ts: simulate()` + `scaleForSim()` — 依赖：T0.4
-- [ ] **B2** `sim.test.ts`（不依赖模型的自检）+ 性能 — 依赖：B1
-- [ ] **B3** `worker.ts` — 依赖：B1
-- [ ] **B4** `cross.test.ts` 网格 — 依赖：B2, A3
-- [ ] **B5** 修正 `model.ts` 直到网格偏差 ≤2pp，记录实测最大误差 — 依赖：B4
+- [x] **B1** (轨道 B) `sim.ts: simulate()` + `scaleForSim()` — 依赖：T0.4 — 330d195 (track/verify)
+- [x] **B2** (轨道 B) `sim.test.ts`（不依赖模型的自检）+ 性能 — 依赖：B1 — 330d195 (track/verify)
+- [x] **B3** (轨道 B) `worker.ts` — 依赖：B1 — 924197a (track/verify)
+- [x] **B4** (轨道 B) `cross.test.ts` 网格 — 依赖：B2, A3 — 3510bc0 (track/verify)
+- [x] **B5** (轨道 B) 修正 `model.ts` 直到网格偏差 ≤2pp，记录实测最大误差 — 依赖：B4 — 3510bc0 (track/verify)；model.ts 无需修改：48 点网格最大偏差 0.25pp，网格外探测（C=20、T=1.5Tc）最大 0.51pp
 
 **轨道 C — UI（对着 stub 开发）**
-- [ ] **C1** 布局 + 由 `INPUTS` 生成的两张输入卡（system / redis 明确分开）— 依赖：T0.5
-- [ ] **C2** 🎲 按钮（`randomSystem()` 已在 M0 的 `inputs.ts` 里实现并测试） — 依赖：C1
-- [ ] **C3** `render()`：结论句 + 数字卡片 — 依赖：C1
-- [ ] **C4** 图①②③ — 依赖：C3
-- [ ] **C5** Validate → Worker → parity 图④ — 依赖：C3（真实数据联调另需 B3）
-- [ ] **C6** 预设栏 + Assumptions 面板 + 手机布局 — 依赖：C3
+- [x] **C1** (轨道 C) 布局 + 由 `INPUTS` 生成的两张输入卡（system / redis 明确分开）— 依赖：T0.5 — ec37c2c (track/ui)
+- [x] **C2** (轨道 C) 🎲 按钮（`randomSystem()` 已在 M0 的 `inputs.ts` 里实现并测试） — 依赖：C1 — ec37c2c；连点 20 次无 NaN (track/ui)
+- [x] **C3** (轨道 C) `render()`：结论句 + 数字卡片 — 依赖：C1 — ec37c2c，§6.1 样式 489886c (track/ui)
+- [x] **C4** (轨道 C) 图①②③ — 依赖：C3 — 489886c；单次刷新实测 32–67ms，其中 `curves()` 约 44ms（UI 自身约 8ms），拖动经 rAF 合帧仍流畅，但未达 <50ms (track/ui)
+- [x] **C5** (轨道 C) Validate → Worker → parity 图④ — 依赖：C3（真实数据联调另需 B3） — 29c4e36；与 track/verify 临时合并实测：默认 + 5 预设最大偏差 0.73pp，每次 3–5s (track/ui)
+- [x] **C6** (轨道 C) 预设栏 + Assumptions 面板 + 手机布局 — 依赖：C3 — 489886c；375px 无横向滚动 (track/ui)
 
 **集成与交付**
-- [ ] **I1** 合并三轨，`npm test` 全绿 — 依赖：A5, B5, C2, C4, C5, C6
+- [x] **I1** 合并三轨，`npm test` 全绿 — 依赖：A5, B5, C2, C4, C5, C6 — 086cb7a；三轨已合入 main，7 个测试文件 55 个测试全绿，交叉网格最大偏差 0.25pp
 - [ ] **I2** `preview` 下浏览器逐预设验收 + 🎲 压测 — 依赖：I1
 - [ ] **I3** 部署并在无痕窗口复测 Pages URL — 依赖：I2, T0.6
-- [ ] **D1** README 骨架（模型、假设、参考）— 依赖：T0.4
+- [x] **D1** README 骨架（模型、假设、参考）— 依赖：T0.4 — 247164a；5 处 `TODO(author)` 留给用户定稿
 - [ ] **D2** README 定稿（理由、取舍、实测误差、耗时；判断性内容由用户定稿）— 依赖：B5, I3
 - [ ] **D3** 视频提纲 — 依赖：I3
 - [ ] **D4** 导出 transcripts — 依赖：全部
 
 **扩展（有时间再做）**
-- [ ] **X1a** `advisor.ts` 完整规则集 — 依赖：A5
-- [ ] **X1b** 右侧 Advisor 面板（渲染全部 `advise()` 条目）— 依赖：C3
-- [ ] **X2** 吉祥物 Professor Amber 入驻 Advisor 面板，表情绑定 `level` — 依赖：X1b
+- [x] **X1a** `advisor.ts` 完整规则集 — 依赖：A5 — e4659e9；共 12 条规则（3 bad / 8 warn / 1 good）
+- [x] **X1b** 右侧 Advisor 面板（渲染全部 `advise()` 条目）— 依赖：C3 — (轨道 C) 489886c (track/ui)
+- [x] **X2** (轨道 C) 吉祥物 Professor Amber 入驻 Advisor 面板，表情绑定 `level` — 依赖：X1b — 素材已精简（e4659e9）：`cat_teacher/face_{happy,thinking,stern,surprised}.svg`（同一 viewBox，可直接互换）+ `full_marks.svg`；映射 good→happy、warn→thinking、bad→stern、DB 过载/承重墙→surprised、全部 good→full_marks — 19eb2cc (track/ui)
 - [ ] **X3** 教育内容 — 依赖：I3
+- [x] **X5** 考试页 `exam.html`：50 题题库（`src/engine/quiz.ts`，数字类题目由测试用 `evaluate()` 复核）→ 随机抽 5 道选择题 → 打分 + 逐题解释；专属监考吉祥物猫头鹰（`cat_teacher/proctor_*.svg`）— 依赖：A3；新增文件 `exam.html` `src/ui/exam.ts` `src/ui/exam.css` `test/quiz.test.ts`，并改 `vite.config.ts` 为多页 — f4fe2bd；浏览器验收通过（答题→交卷→打分/解释/猫头鹰表情，无 console 报错）
 - [ ] **X4** 逐 rank 命中概率图 / LFU 对比 — 依赖：A3, C4
 
 ## 9. 扩展（有时间再做）
 
 - **MX1 Advisor 侧栏（你新增的）**：页面右侧根据用户的 Redis 选择逐条点评。协议已在 M0 预留（`Advice`、`advise()`、右栏占位），核心只显示 `advise()[0]`；扩展 = 在 `advisor.ts` 补全规则 + 右栏渲染全部条目。规则示例：内存买多了（TTL 只留住 X GB，你付了 Y GB）；TTL 形同虚设（淘汰年龄 Tc < TTL）；P99 比不加缓存更差（miss>1%）；缓存已成承重墙（redisDown 负载≥1）；脏读率过高 → 建议缩短 TTL 或改 invalidate；α 太低命中率≈C/N；已过拐点（再加 1GB 命中率提升<0.1%）。规则与面板分属 `advisor.ts` / UI 文件，可两个 agent 并行。
-- MX2 吉祥物：素材已在仓库 `cat_teacher/`（Professor Amber 姜黄猫老师，`generate.py` 生成的 SVG，每张 4–13 KB）。住在 Advisor 侧栏"批改"用户的 Redis 配置，表情绑定 `level`：good → `05_full_marks` / `06_well_done`，warn → `07_any_questions`，bad → 从 `02_expressions` 取严肃表情（需单张时用 `generate.py` 导出）。
+- MX2 吉祥物：`cat_teacher/generate.py` 现只生成 4 张头像（happy / thinking / stern / surprised，共用一个 viewBox，每张约 2 KB）和 `full_marks.svg`（A+ 批改卡）。住在 Advisor 侧栏，头像随 `advise()[0].level` 切换；具体映射见 TODO 的 X2 行。
 - MX3 教育内容："为什么容量就是一个隐形 TTL"、noeviction 陷阱、Brooker 双稳态。
 - MX4 按 rank 的逐 key 命中概率图；LFU 对比。
 
