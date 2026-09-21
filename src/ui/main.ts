@@ -143,6 +143,13 @@ function update() {
   }
   policySelect.value = P.redis.writePolicy
   $('dataset').textContent = `Dataset: ${bytes(P.sys.keys * P.sys.objBytes)}`
+  // Simulation results describe the settings they ran with, so any change discards them and stops a run in progress
+  if (worker) {
+    worker.terminate()
+    worker = undefined
+    pairs = []
+    $('sim-status').textContent = 'Settings changed. Run it again.'
+  }
   cancelAnimationFrame(frame)
   frame = requestAnimationFrame(render)
 }
