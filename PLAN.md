@@ -182,7 +182,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 
 **进度快照（2026-09-21，由主会话汇总；逐项状态以下方清单为准）**
 
-线上：https://limboantique.github.io/Anthropic/ 与 `/exam.html`；main = `079dd56`，7 个测试文件 88 个测试全绿，CI 自动部署。
+线上：https://limboantique.github.io/Anthropic/ 与 `/exam.html`；main = `0b81d87` 之后，7 个测试文件 88 个测试全绿，CI 自动部署。
 
 | 阶段 / 轨道 | 状态 | 说明 |
 |---|---|---|
@@ -191,7 +191,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 | 轨道 B 仿真 → 交叉验证 | ✅ 5/5 | 模型无需修改：64 点网格最大偏差 0.35pp，Validate 路径 1.09pp，stale age 相对误差 ≤2.5% |
 | 轨道 C UI | ✅ 6/6 | Classroom paper 风格；已合入 main |
 | 集成 | ✅ 3/3 | 线上逐预设验收、🎲 压测、Pages 子路径下 Worker 均通过 |
-| 交付物 | 🔄 3/4 | D1 README 骨架、D2 README 定稿（含截图）、D3 视频提纲完成；**D4（导出 transcripts）与录制视频需用户完成** |
+| 交付物 | 🔄 3/4 | D1 README 骨架、D2 README 定稿（含截图）、D3 视频提纲完成；D4 已提交 4 份子会话记录，**主会话记录与视频录制仍需用户完成** |
 | 扩展 | ✅ 6/6 | X1a 规则集、X1b 面板、X2 吉祥物、X3 教育内容、X4 逐 rank 图、X5 考试页 |
 | 追加（集成后） | ✅ 15/15 | X6–X20：延迟图成为题眼、性价比指标、裁判面板、吉祥物统一风格、帮助按钮等 |
 
@@ -238,7 +238,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 - [x] **D1** README 骨架（模型、假设、参考）— 依赖：T0.4 — 247164a；5 处 `TODO(author)` 留给用户定稿
 - [x] **D2** README 定稿（理由、取舍、实测误差、耗时；判断性内容由用户定稿）— 依赖：B5, I3 — 用户已定稿（设计取舍、扩展方向、耗时 2.5 小时）；截图 a1125d4（`docs/explorer.webp`、`docs/exam.png`）
 - [x] **D3** 视频提纲 — 依赖：I3 — 39344bc，`VIDEO.md`；末尾 1 处 `TODO(author)`
-- [ ] **D4** 导出 transcripts — 依赖：全部
+- [~] **D4** 导出 transcripts — 依赖：全部 — 已提交 `claude_code_conversation/` 下 4 份会话记录（吉祥物、页面风格调研、轨道 B 仿真验证、轨道 C UI）；提交前已扫描，无密钥/令牌，仅含本机路径。**主会话（规划、模型、集成、考试页等）的记录尚未导出**，需用户导出后补入
 
 **扩展（原计划内，6/6 完成）**
 - [x] **X1a** `advisor.ts` 完整规则集 — 依赖：A5 — e4659e9；共 12 条规则（3 bad / 8 warn / 1 good）
