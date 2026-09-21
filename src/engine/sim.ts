@@ -1,3 +1,4 @@
+import { bins, evaluate } from './model'
 import type { Params, SimRequest, SimResult } from '../contract/types'
 
 const OVERHEAD = 100 // bytes Redis spends per key on top of the value
@@ -91,8 +92,20 @@ export function simulate(r: SimRequest): SimResult {
   return { id: r.id, missRate: 1 - hits / reads, staleRate: stale / reads }
 }
 
-// Shrinks keys, memory and traffic by one factor so per-key request rates and the cached fraction are preserved
-export function scaleForSim(p: Params, maxKeys = 1e6): Params {
-  const f = Math.min(1, maxKeys / p.sys.keys)
-  return { sys: { ...p.sys, keys: Math.round(p.sys.keys * f), rps: p.sys.rps * f, wps: p.sys.wps * f }, redis: { ...p.redis, memGB: p.redis.memGB * f } }
+// Shrinks keys, memory and traffic by one factor, which preserves the cached fraction and the mean per-key request rate.
+// The factor also fits 8 horizons into `requests` events (half of them warm-up), but keeps at least 100 keys and 64 cache
+// slots, below which the model's large-cache approximation is itself off. The horizon is how long the cache remembers its
+// cold start. Without a TTL a key is forgotten after `reach`: the eviction age, or the coldest key's request interval when
+// nothing is evicted. Stale reads settle once keys of that age have met a write, rps/wps times later. A TTL caps either.
+export function scaleForSim(p: Params, maxKeys = 1e6, requests = 3e6): Params {
+  const { sys, redis } = p
+  const bytes = sys.objBytes + OVERHEAD, cap = (redis.memGB * 1e9) / bytes
+  const tc = evaluate(p).evictionAgeSec
+  const reach = isFinite(tc) ? tc : 1 / (sys.rps * bins(sys.keys, sys.alpha).at(-1)!.p)
+  const ageing = sys.wps > 0 && redis.writePolicy === 'ttl-only'
+  const horizon = Math.min(redis.ttlSec, reach * (ageing ? Math.max(1, sys.rps / sys.wps) : 1))
+  const f = Math.min(1, maxKeys / sys.keys, Math.max(100 / sys.keys, 64 / cap, requests / (8 * (sys.rps + sys.wps) * horizon)))
+  // Memory is snapped to a whole number of keys, because the simulator cannot hold the fraction that the model would count
+  const slots = Math.round(cap * f) + 1e-6
+  return { sys: { ...sys, keys: Math.round(sys.keys * f), rps: sys.rps * f, wps: sys.wps * f }, redis: { ...redis, memGB: (slots * bytes) / 1e9 } }
 }
