@@ -32,6 +32,42 @@ const bytes = (b: number) => {
 const show = (s: InputSpec, v: number) =>
   s.key === 'availability' ? +(v * 100).toFixed(4) + '%' : s.key === 'ttlSec' ? dur(v) : s.key === 'objBytes' ? bytes(v) : s.key === 'memGB' ? bytes(v * 1e9) : `${si(v)} ${s.unit}`
 
+// Plain-language explanation behind every "!" button, keyed by input key, tile title or data-help attribute
+const HELP: Record<string, string> = {
+  system: 'The application you are designing for: its data, its traffic and its database. Treat it as given; the dice draws a new one to practise on.',
+  redis: 'The decisions you make when you add Redis. Change these and watch whether the cache actually helps.',
+  advisor: 'Every remark the rule-based advisor has about your current Redis choices, most serious first. ✗ is a problem, △ is worth a look, ✓ is fine.',
+  keys: 'How many different items the application can ask for, for example one per user or per product.',
+  objBytes: 'Size of one cached value. Keys × size is the dataset: the memory you would need to cache everything.',
+  alpha: 'How unevenly popular the keys are. 0 means every key is equally likely, so caching barely helps. Around 1 is typical web traffic. At 2 a handful of keys get almost all the reads.',
+  rps: 'Read requests per second, summed over all keys.',
+  wps: 'Updates per second. Writes go to the same popular keys as reads, and every write makes the cached copy out of date.',
+  dbP50Ms: 'Median time the database needs for one read: half of all reads are faster than this.',
+  dbP99Ms: 'The slow tail of the database: 1 read in 100 takes longer than this.',
+  dbCapacityQps: 'The most queries per second the database can serve before it is overloaded.',
+  memGB: 'How much RAM you buy for Redis. When it is full, the least recently used key is evicted to make room.',
+  ttlSec: 'Time to live: how long a cached value is kept before it is dropped and read from the database again. Longer means more hits but older data. The last slider step is ∞, never expire.',
+  writePolicy: 'What happens to the cached copy when the value changes in the database. Do nothing: readers can get the old value until the TTL runs out. Delete: no stale reads, but the next read is a miss.',
+  pricePerGBMonth: 'Cost of one GB of Redis memory per month. The default is roughly AWS ElastiCache.',
+  availability: 'Share of the time Redis is reachable. 99.9% is about 43 minutes of downtime a month, during which every read waits for the timeout and then goes to the database.',
+  p50Ms: 'Median Redis response time including the network: half of all lookups are faster than this.',
+  p99Ms: 'The slow tail of Redis: 1 lookup in 100 takes longer than this.',
+  timeoutMs: 'How long the application waits for Redis before giving up and asking the database. It is only paid while Redis is down.',
+  'Hit rate': 'Share of reads answered by Redis without touching the database. The rest are misses, which pay for Redis and the database.',
+  'Stale reads': 'Share of reads that return an old value, because the key was updated in the database after it was cached.',
+  'P50 latency': 'The typical read: half of all reads finish faster than this. Compare it with the database-only figure underneath.',
+  'P99 latency': 'The slow tail: 1 read in 100 is slower than this. It only improves once misses fall below about 1%, because until then the slowest 1% are all database reads.',
+  'DB load': 'Traffic that reaches the database, as a share of its capacity. 100% or more is overload. Redis down is what the database sees when the cache fails and every read falls through.',
+  'Memory used': 'Memory actually occupied in steady state. If it is far below what you bought, the TTL empties the cache before it fills and you pay for idle RAM.',
+  'Eviction age': 'How long an untouched key survives before memory pressure pushes it out. It works like a hidden TTL: whichever is shorter, this or your TTL, decides what stays cached.',
+  chartMem: 'How the miss rate would change if you bought more or less memory with everything else fixed. The dot is your current choice and the top axis is the monthly cost. The dashed line is a perfect cache that always holds the hottest keys. Where the curve is flat, more memory buys nothing.',
+  chartTtl: 'How misses (solid) and stale reads (dotted) change with the TTL. The vertical lines mark your TTL and the eviction age. Right of the eviction age a longer TTL no longer removes misses, it only adds stale reads.',
+  chartCdf: 'For each latency on the x axis, the share of reads that finish at least that fast. A curve further left is faster. The table reads off four points: P50 is the typical read, P99 the slowest 1%.',
+  chartParity: 'A check that the formulas can be trusted. The button replays a scaled-down copy of your workload through a real LRU + TTL cache, for your settings and eight variations. Each point compares the predicted value (x) with the measured one (y); points on the diagonal agree.',
+}
+const info = (key: string) => `<button type="button" class="info" aria-label="${HELP[key]}" data-tip="${HELP[key]}">!</button>`
+for (const el of document.querySelectorAll<HTMLElement>('[data-help]')) el.outerHTML = info(el.dataset.help!)
+
 // Slider position t in 0..1 to value: availability is linear in its number of nines, a log slider with min 0 snaps to 0 at the left end
 function toValue(s: InputSpec, t: number): number {
   if (s.key === 'availability') return t >= 1 ? 1 : 1 - 10 ** -(1 + 4 * t)
@@ -51,7 +87,7 @@ function toPos(s: InputSpec, v: number): number {
 // Builds one slider per InputSpec inside its group's card; the TTL slider gets one extra step meaning "no TTL"
 const sliders = INPUTS.map((s) => {
   const label = document.createElement('label')
-  label.innerHTML = `<span>${s.label}</span><output></output><input type="range" min="0" max="${STEPS + +(s.key === 'ttlSec')}">`
+  label.innerHTML = `<span>${s.label}${info(s.key)}</span><output></output><input type="range" min="0" max="${STEPS + +(s.key === 'ttlSec')}">`
   const input = label.querySelector('input')!
   input.oninput = () => {
     group(s)[s.key] = toValue(s, +input.value / STEPS)
@@ -63,7 +99,7 @@ const sliders = INPUTS.map((s) => {
 })
 
 const policy = document.createElement('label')
-policy.innerHTML = `<span>On write</span><select><option value="ttl-only">Do nothing, wait for the TTL</option><option value="invalidate">Delete the cached key</option></select>`
+policy.innerHTML = `<span>On write${info('writePolicy')}</span><select><option value="ttl-only">Do nothing, wait for the TTL</option><option value="invalidate">Delete the cached key</option></select>`
 const policySelect = policy.querySelector('select')!
 policySelect.onchange = () => {
   P.redis.writePolicy = policySelect.value as Params['redis']['writePolicy']
@@ -136,7 +172,7 @@ function render() {
     ['Memory used', bytes(o.memUsedGB * 1e9), `of ${bytes(redis.memGB * 1e9)} · $${si(o.costPerMonth)}/month`],
     ['Eviction age', dur(o.evictionAgeSec), o.evictionAgeSec === Infinity ? 'memory never fills, only the TTL removes keys' : o.binding === 'ttl' ? 'TTL expires keys before LRU evicts them' : 'LRU evicts keys before the TTL fires'],
   ]
-  $('tiles').innerHTML = tiles.map(([k, v, sub]) => `<div class="card${v.includes('⚠') ? ' bad' : ''}"><small>${k}</small><strong>${v}</strong><small>${sub}</small></div>`).join('')
+  $('tiles').innerHTML = tiles.map(([k, v, sub]) => `<div class="card${v.includes('⚠') ? ' bad' : ''}"><small>${k}${info(k)}</small><strong>${v}</strong><small>${sub}</small></div>`).join('')
 
   draw('chart-mem', {
     marginTop: 34,

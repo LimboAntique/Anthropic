@@ -15,12 +15,12 @@
     <main>
       <section id="inputs">
         <form class="card system" id="system">
-          <h2>① Your system <small>given</small></h2>
+          <h2>① Your system <span data-help="system"></span><small>given</small></h2>
           <button type="button" id="dice">🎲 Randomize</button>
           <p id="dataset"></p>
         </form>
         <form class="card redis" id="redis">
-          <h2>② Your Redis choices <small>you decide</small></h2>
+          <h2>② Your Redis choices <span data-help="redis"></span><small>you decide</small></h2>
         </form>
       </section>
       <section id="results">
@@ -28,20 +28,20 @@
         <div id="tiles"></div>
         <div id="charts">
           <figure>
-            <figcaption><b>Miss rate vs memory</b> <span class="key">your Redis (LRU)</span> <span class="key ideal">ideal (hottest keys pinned)</span></figcaption>
+            <figcaption><b>Miss rate vs memory</b><span data-help="chartMem"></span> <span class="key">your Redis (LRU)</span> <span class="key ideal">ideal (hottest keys pinned)</span></figcaption>
             <div id="chart-mem"></div>
           </figure>
           <figure>
-            <figcaption><b>Miss and stale reads vs TTL</b> <span class="key">miss</span> <span class="key dot">stale</span></figcaption>
+            <figcaption><b>Miss and stale reads vs TTL</b><span data-help="chartTtl"></span> <span class="key">miss</span> <span class="key dot">stale</span></figcaption>
             <div id="chart-ttl"></div>
           </figure>
           <figure>
-            <figcaption><b>Read latency CDF</b> <span class="key">with Redis</span> <span class="key base">database only</span></figcaption>
+            <figcaption><b>Read latency CDF</b><span data-help="chartCdf"></span> <span class="key">with Redis</span> <span class="key base">database only</span></figcaption>
             <div id="chart-cdf"></div>
             <table id="latency"></table>
           </figure>
           <figure>
-            <figcaption><b>Model vs simulation</b> <span>● miss</span> <span>□ stale</span></figcaption>
+            <figcaption><b>Model vs simulation</b><span data-help="chartParity"></span> <span>● miss</span> <span>□ stale</span></figcaption>
             <div id="chart-parity"></div>
             <p><button type="button" id="validate">Validate with simulation</button> <span id="sim-status">Replays the scaled workload through a real LRU + TTL cache in a Web Worker; points on the diagonal mean the model can be trusted.</span></p>
           </figure>
@@ -67,7 +67,7 @@
       </section>
       <aside class="card" id="advisor">
         <img id="amber" alt="Professor Amber, the cat teacher grading your Redis choices" />
-        <h2>Professor Amber says</h2>
+        <h2>Professor Amber says <span data-help="advisor"></span></h2>
         <ul id="advice"></ul>
       </aside>
     </main>
