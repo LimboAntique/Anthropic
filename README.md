@@ -8,7 +8,9 @@ An explorable model of a Redis cache in front of a database. Describe a system, 
 
 ## Why this, and what is non-obvious
 
-<!-- TODO(author): your own words. Why this theme and this idea; what you wanted a reader to walk away understanding. -->
+When people design a system and need more read throughput or lower latency, they reach for Redis by instinct. But Redis comes with configuration — memory, TTL, how writes are handled — and if that configuration is wrong, Redis may do nothing for the system, or make it worse. The decisions I deliberately left out (key design, stampedes and multi-tier caches, replica lag) are real, but they are per-system or operational; they do not change *how you choose the parameters*, which is what this tool is about.
+
+I wanted to help people choose those parameters with a model instead of a reflex. That makes it a Theme 1 project: a static explanation of caching cannot show you that your one hour TTL is irrelevant because eviction gets there first, but a model you can drag can. The subject matter is Theme 3 — tail latency, staleness, what happens when the cache is gone — and I chose to teach that judgment rather than build another system that embodies it.
 
 Things the tool makes visible that most "just add Redis" conversations miss:
 
