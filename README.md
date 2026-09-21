@@ -8,9 +8,11 @@ An explorable model of a Redis cache in front of a database. Describe a system, 
 
 ## Why this, and what is non-obvious
 
-When people design a system and need more read throughput or lower latency, they reach for Redis by instinct. But Redis comes with configuration — memory, TTL, how writes are handled — and if that configuration is wrong, Redis may do nothing for the system, or make it worse. The decisions I deliberately left out (key design, stampedes and multi-tier caches, replica lag) are real, but they are per-system or operational; they do not change *how you choose the parameters*, which is what this tool is about.
+Adding Redis is one of the most common reflexes in system design: whenever a system needs higher read throughput or lower latency, a cache is the first thing proposed. A cache is not a single decision, however. It comes with parameters (how much memory, what TTL, how writes are handled), and those parameters determine whether it helps at all. A poorly configured Redis can leave the system no better off, or make it worse: every miss pays for both Redis and the database, a long TTL serves stale data, and a cache that absorbs load turns into a dependency the database can no longer survive without.
 
-I wanted to help people choose those parameters with a model instead of a reflex. That makes it a Theme 1 project: a static explanation of caching cannot show you that your one hour TTL is irrelevant because eviction gets there first, but a model you can drag can. The subject matter is Theme 3 — tail latency, staleness, what happens when the cache is gone — and I chose to teach that judgment rather than build another system that embodies it.
+This tool replaces that reflex with a model. Given a description of the system, it shows what a particular set of Redis choices actually buys, and why. Several related concerns are deliberately out of scope: key design, stampedes and multi-tier caching, and replica lag. They matter in practice, but they are either specific to one system or operational in nature, and none of them changes how the parameters should be chosen.
+
+I submitted this under Theme 1 because the problem is one of understanding. A static explanation of caching cannot show that a one-hour TTL has no effect because eviction removes the key first; a model that responds as the inputs are dragged can. The subject matter belongs to Theme 3 (tail latency, staleness, behaviour when the cache is unavailable), and I chose to teach that engineering judgment rather than to build one more system that embodies it.
 
 Things the tool makes visible that most "just add Redis" conversations miss:
 
