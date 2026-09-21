@@ -51,7 +51,7 @@ Popularity is evaluated on 256 exact ranks plus geometric bins, so 10⁹ keys co
 | 48-point grid (miss rate and stale rate) | **0.25 pp** |
 | off-grid probes (tiny cache, TTL = 1.5·Tc) | 0.51 pp |
 
-The page's **Validate** button runs the same simulator in a Web Worker and plots model against simulation.
+On the page, the "Can you trust these numbers?" panel runs the same simulator in a Web Worker for the current settings and eight variations, and plots prediction against measurement.
 
 ### Assumptions and non-goals
 

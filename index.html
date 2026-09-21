@@ -45,12 +45,14 @@
             <figcaption><b>Which keys are cached</b><span data-help="chartRank"></span> <span class="key">hit probability of a key</span> <span class="key base">share of reads so far</span> <span class="key ideal">ideal cache ends here</span></figcaption>
             <div id="chart-rank"></div>
           </figure>
-          <figure>
-            <figcaption><b>Model vs simulation</b><span data-help="chartParity"></span> <span>● miss</span> <span>□ stale</span></figcaption>
-            <div id="chart-parity"></div>
-            <p><button type="button" id="validate">Validate with simulation</button> <span id="sim-status">Replays the scaled workload through a real LRU + TTL cache in a Web Worker; points on the diagonal mean the model can be trusted.</span></p>
-          </figure>
         </div>
+        <section id="trust">
+          <h2><small>The referee</small>Can you trust these numbers?</h2>
+          <div id="chart-parity"></div>
+          <p class="legend">Each point is one experiment: <span>● miss rate</span> <span>□ stale-read rate</span>. Across: what the formulas predict. Up: what the simulation measured. On the diagonal, they agree.</p>
+          <p>Everything else on this page comes from formulas: fast enough to follow a slider, but an approximation. This panel checks them against the real thing. The button replays a scaled-down copy of your workload, millions of requests, through an actual LRU list with real TTL timers, and simply counts the misses and stale reads. It uses none of the formulas. It runs your settings and eight variations: four memory sizes and four TTLs.</p>
+          <p><button type="button" id="validate">Run the simulation</button> <span id="sim-status">Not run yet.</span></p>
+        </section>
         <section id="lessons" class="card">
           <h2>Six lessons, each with something to try</h2>
           <details open>

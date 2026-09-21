@@ -13,7 +13,7 @@ h1, h2, #verdict, figcaption b { font-family: Georgia, 'Iowan Old Style', serif;
 h1 { margin: 0; font-size: 40px; line-height: 1.15; }
 h2 { margin: 0 0 8px; font-size: 16px; }
 header p { margin: 4px 0 10px; color: var(--muted); max-width: 70ch; }
-small, figcaption, #dataset, #sim-status, details { color: var(--muted); font-size: 12px; }
+small, figcaption, #dataset, details { color: var(--muted); font-size: 12px; }
 a { color: var(--given); }
 button, select { font: inherit; color: inherit; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 8px; padding: 3px 10px; cursor: pointer; }
 button:hover { background: var(--choice-bg); }
@@ -84,3 +84,13 @@ label, h2, figcaption, #tiles .card { position: relative; }
 #lessons details { color: var(--ink); font-size: 14px; border-top: 1px solid var(--muted); padding: 8px 0; }
 #lessons summary { font: 600 15px Georgia, 'Iowan Old Style', serif; cursor: pointer; }
 #lessons p { max-width: 72ch; margin: 8px 0 0; }
+/* The referee panel is the only inverted element on the page: ink band, double rule, no meaning colour of its own */
+#trust { border: 3px double var(--ink); border-radius: 8px; padding: 0 16px 12px; }
+#trust h2 { margin: 0 -16px 12px; padding: 10px 16px; background: var(--ink); color: var(--paper); font-size: 20px; border-radius: 4px 4px 0 0; }
+#trust h2 small { display: block; float: none; font: 600 11px system-ui, sans-serif; text-transform: uppercase; letter-spacing: 0.08em; color: var(--paper); opacity: 0.65; }
+#trust p { max-width: 72ch; margin: 8px 0 0; }
+#trust .legend { color: var(--muted); font-size: 12px; }
+#trust .legend span { white-space: nowrap; color: var(--ink); }
+#validate { background: var(--ink); color: var(--paper); font-weight: 600; padding: 6px 14px; }
+#validate:hover { background: var(--given); }
+#sim-status { font: italic 15px Georgia, 'Iowan Old Style', serif; margin-left: 8px; }
