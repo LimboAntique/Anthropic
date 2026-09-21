@@ -75,7 +75,7 @@ details ul { padding-left: 18px; }
 
 /* "!" help marks, shown only while the mark itself is hovered; the bubble is sized by the nearest positioned container so it never leaves the page */
 label, h2, figcaption, #tiles .card { position: relative; }
-.info { display: inline-block; width: 14px; margin-left: 5px; border: 1.5px solid; border-radius: 50%; font: 700 10px/14px system-ui, sans-serif; text-align: center; vertical-align: 1px; cursor: help; color: var(--muted); }
+.info { display: inline-block; width: 16px; height: 16px; margin-left: 5px; border: 1.5px solid; border-radius: 50%; font: 700 10px/13px system-ui, sans-serif; text-align: center; vertical-align: 1px; cursor: help; color: var(--muted); }
 .info:hover { color: var(--ink); }
 .info:hover::after { content: attr(data-tip); position: absolute; z-index: 9; top: 100%; left: 0; right: 0; margin-top: 4px; padding: 8px 10px; border-radius: 8px; background: var(--ink); color: var(--paper); font: 400 12px/1.45 system-ui, sans-serif; text-align: left; text-transform: none; letter-spacing: 0; }
 .worse { color: var(--bad); }
