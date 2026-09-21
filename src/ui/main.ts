@@ -8,7 +8,7 @@ import { scaleForSim } from '../engine/sim'
 import './style.css'
 
 const STEPS = 1000 // slider resolution
-const SIM_REQUESTS = 3e6 // requests replayed per simulation run
+const SIM_REQUESTS = 4e6 // requests replayed per simulation run
 const CHOICE = 'var(--choice)'
 const MUTED = 'var(--muted)'
 // Labelled through the axis text channel because log scales hide tick labels that are not powers of ten
@@ -197,9 +197,10 @@ function drawParity() {
 $('validate').onclick = () => {
   worker?.terminate()
   worker = new Worker(new URL('../engine/worker.ts', import.meta.url), { type: 'module' })
-  const base = scaleForSim(P)
-  const tc = evaluate(base).evictionAgeSec
-  const ttl = [base.redis.ttlSec, tc, 3600].find(isFinite)!
+  const ttl = [P.redis.ttlSec, evaluate(P).evictionAgeSec, 3600].find(isFinite)!
+  // Shrinks the key space until three times the longest simulated TTL fits into the discarded warm-up half of a run
+  const maxKeys = (P.sys.keys * SIM_REQUESTS) / (6 * 10 * ttl * (P.sys.rps + P.sys.wps))
+  const base = scaleForSim(P, Math.min(1e6, Math.max(1e4, maxKeys)))
   const vary = (run: string, redis: Partial<Params['redis']>) => ({ run, params: { sys: base.sys, redis: { ...base.redis, ...redis } } })
   const runs = [
     vary('current', {}),
@@ -214,7 +215,7 @@ $('validate').onclick = () => {
     pairs.push({ run, kind: 'miss', model: m.missRate, sim: e.data.missRate }, { run, kind: 'stale', model: m.staleRate, sim: e.data.staleRate })
     const gap = Math.max(...pairs.map((d) => Math.abs(d.model - d.sim))) * 100
     const n = pairs.length / 2
-    $('sim-status').textContent = `${n < runs.length ? `Simulating ${n}/${runs.length}… ` : ''}Largest model–simulation gap: ${gap.toFixed(2)} pp (${si(base.sys.keys)} keys, ${si(SIM_REQUESTS)} requests per run).`
+    $('sim-status').textContent = `${n < runs.length ? `Simulating ${n}/${runs.length}… ` : ''}Largest model–simulation gap: ${gap.toFixed(2)} pp (${si(base.sys.keys)} keys, ${si(SIM_REQUESTS)} requests per run${maxKeys < 1e4 && gap > 2 ? '; this TTL is too long for the simulation to warm up' : ''}).`
     drawParity()
   }
   runs.forEach((r, id) => worker!.postMessage({ id, params: r.params, requests: SIM_REQUESTS, seed: id + 1 }))
