@@ -92,7 +92,7 @@ On the page, the **"Can you trust these numbers?"** panel runs the same simulato
 
 - Calibrate from production: enter an observed hit rate, solve for α, then predict the effect of a resize.
 - Separate write popularity from read popularity.
-- Per-key view: hit probability by popularity rank, and which mechanism removes each key.
+- Extend the per-key view (hit probability by popularity rank is already on the page) to show which mechanism removes each key: TTL, eviction or a write.
 - LFU and Redis' sampled LRU as alternative policies; `noeviction` failure mode.
 - Database queueing under load, to show the metastable collapse when the cache disappears.
 - Adding System Analysis tool, to auto fill 'Your System' Section

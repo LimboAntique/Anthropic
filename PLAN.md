@@ -191,7 +191,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 | 轨道 B 仿真 → 交叉验证 | ✅ 5/5 | 模型无需修改：64 点网格最大偏差 0.35pp，Validate 路径 1.09pp，stale age 相对误差 ≤2.5% |
 | 轨道 C UI | ✅ 6/6 | Classroom paper 风格；已合入 main |
 | 集成 | ✅ 3/3 | 线上逐预设验收、🎲 压测、Pages 子路径下 Worker 均通过 |
-| 交付物 | 🔄 2/4 | D1 README 骨架、D3 视频提纲完成；**D2（4 处 `TODO(author)`）与 D4（导出 transcripts）需用户完成** |
+| 交付物 | 🔄 3/4 | D1 README 骨架、D2 README 定稿（含截图）、D3 视频提纲完成；**D4（导出 transcripts）与录制视频需用户完成** |
 | 扩展 | ✅ 6/6 | X1a 规则集、X1b 面板、X2 吉祥物、X3 教育内容、X4 逐 rank 图、X5 考试页 |
 | 追加（集成后） | ✅ 15/15 | X6–X20：延迟图成为题眼、性价比指标、裁判面板、吉祥物统一风格、帮助按钮等 |
 
@@ -236,7 +236,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 - [x] **I2** `preview` 下浏览器逐预设验收 + 🎲 压测 — 依赖：I1 — 线上验收：5 个预设结论句全部与标题一致；🎲 连点 30 次无 NaN/undefined，出现 5 种不同结论；无 console 报错
 - [x] **I3** 部署并在无痕窗口复测 Pages URL — 依赖：I2, T0.6 — 2671e92 已部署；`/` 与 `/exam.html` 均 200；Pages 子路径下 Worker 正常（Validate 2.8s，最大偏差 0.02pp，点落在对角线）；375px 无横向滚动。首次 push 因性能断言在 CI 上超时而失败，已放宽为本机 10 倍
 - [x] **D1** README 骨架（模型、假设、参考）— 依赖：T0.4 — 247164a；5 处 `TODO(author)` 留给用户定稿
-- [ ] **D2** README 定稿（理由、取舍、实测误差、耗时；判断性内容由用户定稿）— 依赖：B5, I3
+- [x] **D2** README 定稿（理由、取舍、实测误差、耗时；判断性内容由用户定稿）— 依赖：B5, I3 — 用户已定稿（设计取舍、扩展方向、耗时 2.5 小时）；截图 a1125d4（`docs/explorer.webp`、`docs/exam.png`）
 - [x] **D3** 视频提纲 — 依赖：I3 — 39344bc，`VIDEO.md`；末尾 1 处 `TODO(author)`
 - [ ] **D4** 导出 transcripts — 依赖：全部
 
