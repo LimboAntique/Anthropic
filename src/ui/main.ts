@@ -160,7 +160,7 @@ function render() {
 
   // The mascot grades the configuration: surprised by an overloadable database, otherwise by how many remarks are not praise
   const flaws = advice.filter((x) => x.level !== 'good').length
-  const face = Math.max(o.dbLoad.withCache, o.dbLoad.redisDown) >= 1 ? 'face_surprised' : head.level === 'bad' ? 'face_stern' : flaws > 1 ? 'face_thinking' : flaws ? 'face_happy' : 'full_marks'
+  const face = Math.max(o.dbLoad.withCache, o.dbLoad.redisDown) >= 1 ? 'face_surprised' : head.level === 'bad' ? 'face_stern' : flaws > 1 ? 'face_thinking' : flaws ? 'face_happy' : 'face_full_marks'
   ;($('amber') as HTMLImageElement).src = FACES[`../../cat_teacher/${face}.svg`]
 
   const load = (u: number) => pct(u) + (u >= 1 ? ' ⚠ overload' : '')

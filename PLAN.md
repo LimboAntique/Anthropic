@@ -237,7 +237,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 **扩展（有时间再做）**
 - [x] **X1a** `advisor.ts` 完整规则集 — 依赖：A5 — e4659e9；共 12 条规则（3 bad / 8 warn / 1 good）
 - [x] **X1b** 右侧 Advisor 面板（渲染全部 `advise()` 条目）— 依赖：C3 — (轨道 C) 489886c (track/ui)
-- [x] **X2** (轨道 C) 吉祥物 Professor Amber 入驻 Advisor 面板，表情绑定 `level` — 依赖：X1b — 素材已精简（e4659e9）：`cat_teacher/face_{happy,thinking,stern,surprised}.svg`（同一 viewBox，可直接互换）+ `full_marks.svg`；映射 good→happy、warn→thinking、bad→stern、DB 过载/承重墙→surprised、全部 good→full_marks — 19eb2cc (track/ui)
+- [x] **X2** (轨道 C) 吉祥物 Professor Amber 入驻 Advisor 面板，表情绑定 `level` — 依赖：X1b — 素材已精简（e4659e9）：`cat_teacher/face_{happy,thinking,stern,surprised}.svg`（同一 viewBox，可直接互换）+ `face_full_marks.svg`（同为大头风格，旁标 A+）；映射 good→happy、warn→thinking、bad→stern、DB 过载/承重墙→surprised、全部 good→face_full_marks — 19eb2cc (track/ui)
 - [ ] **X3** 教育内容 — 依赖：I3
 - [x] **X5** 考试页 `exam.html`：50 题题库（`src/engine/quiz.ts`，数字类题目由测试用 `evaluate()` 复核）→ 随机抽 5 道选择题 → 打分 + 逐题解释；专属监考吉祥物猫头鹰（`cat_teacher/proctor_*.svg`）— 依赖：A3；新增文件 `exam.html` `src/ui/exam.ts` `src/ui/exam.css` `test/quiz.test.ts`，并改 `vite.config.ts` 为多页 — f4fe2bd；浏览器验收通过（答题→交卷→打分/解释/猫头鹰表情，无 console 报错）
 - [ ] **X4** 逐 rank 命中概率图 / LFU 对比 — 依赖：A3, C4
@@ -245,7 +245,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 ## 9. 扩展（有时间再做）
 
 - **MX1 Advisor 侧栏（你新增的）**：页面右侧根据用户的 Redis 选择逐条点评。协议已在 M0 预留（`Advice`、`advise()`、右栏占位），核心只显示 `advise()[0]`；扩展 = 在 `advisor.ts` 补全规则 + 右栏渲染全部条目。规则示例：内存买多了（TTL 只留住 X GB，你付了 Y GB）；TTL 形同虚设（淘汰年龄 Tc < TTL）；P99 比不加缓存更差（miss>1%）；缓存已成承重墙（redisDown 负载≥1）；脏读率过高 → 建议缩短 TTL 或改 invalidate；α 太低命中率≈C/N；已过拐点（再加 1GB 命中率提升<0.1%）。规则与面板分属 `advisor.ts` / UI 文件，可两个 agent 并行。
-- MX2 吉祥物：`cat_teacher/generate.py` 现只生成 4 张头像（happy / thinking / stern / surprised，共用一个 viewBox，每张约 2 KB）和 `full_marks.svg`（A+ 批改卡）。住在 Advisor 侧栏，头像随 `advise()[0].level` 切换；具体映射见 TODO 的 X2 行。
+- MX2 吉祥物：`cat_teacher/generate.py` 现只生成 4 张头像（happy / thinking / stern / surprised，共用一个 viewBox，每张约 2 KB）和 `face_full_marks.svg`（同一大头风格，旁标 A+）。住在 Advisor 侧栏，头像随 `advise()[0].level` 切换；具体映射见 TODO 的 X2 行。
 - MX3 教育内容："为什么容量就是一个隐形 TTL"、noeviction 陷阱、Brooker 双稳态。
 - MX4 按 rank 的逐 key 命中概率图；LFU 对比。
 
