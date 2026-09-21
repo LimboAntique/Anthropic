@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { DEFAULTS } from '../src/contract/inputs'
 import type { Params } from '../src/contract/types'
-import { bins, curves, evaluate, life, meanLatency } from '../src/engine/model'
+import { bins, byRank, curves, evaluate, life, meanLatency } from '../src/engine/model'
 
 const INF = Infinity
 const mk = (sys: Partial<Params['sys']> = {}, redis: Partial<Params['redis']> = {}): Params => ({ sys: { ...DEFAULTS.sys, ...sys }, redis: { ...DEFAULTS.redis, ...redis } })
@@ -100,4 +100,18 @@ test('on average the cache pays off exactly when the hit rate exceeds redis late
   expect(meanLatency(p, 1 - m.breakEvenHit).withCache).toBeCloseTo(m.db, 9)
   expect(meanLatency(p, 1).withCache).toBeCloseTo(m.db + m.redis, 9)
   expect(meanLatency(mk({}, { availability: 0 }), 0).withCache).toBeCloseTo(p.redis.timeoutMs + m.db, 9)
+})
+
+test('per-rank hit probabilities fall with rank and add up to the overall hit rate', () => {
+  for (const p of [DEFAULTS, mk({ wps: 2000 }, { writePolicy: 'invalidate' }), mk({}, { ttlSec: 5, memGB: 8 })]) {
+    const { points, capacity } = byRank(p)
+    let hit = 0
+    points.forEach((pt, i) => {
+      if (i) expect(pt.hit).toBeLessThanOrEqual(points[i - 1].hit + 1e-12)
+      hit += pt.hit * (pt.traffic - (i ? points[i - 1].traffic : 0))
+    })
+    expect(points[points.length - 1].traffic).toBeCloseTo(1, 9)
+    expect(hit).toBeCloseTo(1 - evaluate(p).missRate, 9)
+    expect(capacity).toBeLessThanOrEqual(p.sys.keys)
+  }
 })

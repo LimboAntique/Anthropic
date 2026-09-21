@@ -42,6 +42,10 @@
             <div id="chart-ttl"></div>
           </figure>
           <figure>
+            <figcaption><b>Which keys are cached</b><span data-help="chartRank"></span> <span class="key">hit probability of a key</span> <span class="key base">share of reads so far</span> <span class="key ideal">ideal cache ends here</span></figcaption>
+            <div id="chart-rank"></div>
+          </figure>
+          <figure>
             <figcaption><b>Model vs simulation</b><span data-help="chartParity"></span> <span>● miss</span> <span>□ stale</span></figcaption>
             <div id="chart-parity"></div>
             <p><button type="button" id="validate">Validate with simulation</button> <span id="sim-status">Replays the scaled workload through a real LRU + TTL cache in a Web Worker; points on the diagonal mean the model can be trusted.</span></p>

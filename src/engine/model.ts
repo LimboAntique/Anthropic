@@ -148,3 +148,19 @@ export function curves(p: Params): Curves {
     latencyCdf: logspace(0.05, 5000, 80).map((ms) => ({ ms, withCache: c.withCache(ms), baseline: c.baseline(ms) })),
   }
 }
+
+// Per-key view: for each popularity bin, the hit probability of a key at that rank and the share of all reads
+// going to keys at or above it. `capacity` is the rank where an ideal cache (hottest keys pinned) would stop.
+export function byRank(p: Params) {
+  const b = bins(p.sys.keys, p.sys.alpha)
+  const tc = solve(p, capacity(p), b).tc
+  let first = 1, traffic = 0
+  const points = b.map(({ n, p: pi }) => {
+    const lam = p.sys.rps * pi
+    const l = life(lam, p.redis.writePolicy === 'invalidate' ? p.sys.wps * pi : 0, p.redis.ttlSec, tc)
+    const point = { rank: Math.sqrt(first * (first + n - 1)), hit: 1 - 1 / (1 + lam * l), traffic: (traffic += n * pi) }
+    first += n
+    return point
+  })
+  return { points, capacity: Math.min(capacity(p), p.sys.keys) }
+}

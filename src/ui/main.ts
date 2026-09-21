@@ -2,7 +2,7 @@ import * as Plot from '@observablehq/plot'
 import { DEFAULTS, INPUTS, randomSystem } from '../contract/inputs'
 import type { InputSpec, Params, SimResult } from '../contract/types'
 import { advise } from '../engine/advisor'
-import { curves, evaluate, meanLatency } from '../engine/model'
+import { byRank, curves, evaluate, meanLatency } from '../engine/model'
 import { PRESETS } from '../engine/presets'
 import { scaleForSim } from '../engine/sim'
 import './style.css'
@@ -63,6 +63,7 @@ const HELP: Record<string, string> = {
   'Eviction age': 'How long an untouched key survives before memory pressure pushes it out. It works like a hidden TTL: whichever is shorter, this or your TTL, decides what stays cached.',
   chartMem: 'How the miss rate would change if you bought more or less memory with everything else fixed. The dot is your current choice and the top axis is the monthly cost. The dashed line is a perfect cache that always holds the hottest keys. Where the curve is flat, more memory buys nothing.',
   chartTtl: 'How misses (solid) and stale reads (dotted) change with the TTL. The vertical lines mark your TTL and the eviction age. Right of the eviction age a longer TTL no longer removes misses, it only adds stale reads.',
+  chartRank: 'Keys lined up from the most popular (left) to the least. Orange is the chance that a read of that key is a hit. Grey is the share of all reads that go to keys up to that rank, so you can see how much traffic the well-cached keys carry. The green line is where a perfect cache, one that pins the hottest keys as ideal LFU would, runs out of memory: it would hit 100% to the left and 0% to the right. LRU fades out instead, because it also spends slots on cold keys that were read a moment ago. A short TTL pulls the whole orange curve down, even for the hottest keys.',
   chartCdf: 'Grey is every read going straight to the database. Orange is the same traffic with Redis in front: a hit is answered by Redis alone, but a miss pays for Redis and then the database, so it is slower than having no cache. Read across at any height: where orange is left of grey that share of reads got faster, where it is right of grey they got slower. The dashed line is the hit rate, where the orange curve switches from hits to misses. The table reads off four heights.',
   chartParity: 'A check that the formulas can be trusted. The button replays a scaled-down copy of your workload through a real LRU + TTL cache, for your settings and eight variations. Each point compares the predicted value (x) with the measured one (y); points on the diagonal agree.',
 }
@@ -215,6 +216,18 @@ function render() {
       ...marks.map((m, i) => Plot.text([m], { x: 'x', text: 'text', frameAnchor: 'top', dy: i ? 8 : -10, stroke: 'var(--paper)', fill: 'var(--ink)' })),
       Plot.lineY(c.vsTtl, { x: 'ttlSec', y: 'stale', stroke: CHOICE, strokeWidth: 2, strokeDasharray: '2 4' }),
       Plot.lineY(c.vsTtl, { x: 'ttlSec', y: 'miss', stroke: CHOICE, strokeWidth: 2, tip: true }),
+    ],
+  })
+
+  // Keys from hottest to coldest: LRU fades out gradually where an ideal cache would cut off sharply at its capacity
+  const ranks = byRank(P)
+  draw('chart-rank', {
+    x: { type: 'log', label: 'Key rank (1 = hottest)', tickFormat: si },
+    y: { label: 'Share (%)', percent: true, domain: [0, 100] },
+    marks: [
+      Plot.ruleX([ranks.capacity], { stroke: 'var(--good)', strokeWidth: 2, strokeDasharray: '4 3' }),
+      Plot.lineY(ranks.points, { x: 'rank', y: 'traffic', stroke: MUTED, strokeWidth: 2 }),
+      Plot.lineY(ranks.points, { x: 'rank', y: 'hit', stroke: CHOICE, strokeWidth: 2, tip: true }),
     ],
   })
 
