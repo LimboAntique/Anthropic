@@ -32,7 +32,7 @@ const bytes = (b: number) => {
 const show = (s: InputSpec, v: number) =>
   s.key === 'availability' ? +(v * 100).toFixed(4) + '%' : s.key === 'ttlSec' ? dur(v) : s.key === 'objBytes' ? bytes(v) : s.key === 'memGB' ? bytes(v * 1e9) : `${si(v)} ${s.unit}`
 
-// Plain-language explanation behind every "!" button, keyed by input key, tile title or data-help attribute
+// Plain-language explanation behind every "!" mark, keyed by input key, tile title or data-help attribute
 const HELP: Record<string, string> = {
   system: 'The application you are designing for: its data, its traffic and its database. Treat it as given; the dice draws a new one to practise on.',
   redis: 'The decisions you make when you add Redis. Change these and watch whether the cache actually helps.',
@@ -66,7 +66,7 @@ const HELP: Record<string, string> = {
   chartCdf: 'Grey is every read going straight to the database. Orange is the same traffic with Redis in front: a hit is answered by Redis alone, but a miss pays for Redis and then the database, so it is slower than having no cache. Read across at any height: where orange is left of grey that share of reads got faster, where it is right of grey they got slower. The dashed line is the hit rate, where the orange curve switches from hits to misses. The table reads off four heights.',
   chartParity: 'A check that the formulas can be trusted. The button replays a scaled-down copy of your workload through a real LRU + TTL cache, for your settings and eight variations. Each point compares the predicted value (x) with the measured one (y); points on the diagonal agree.',
 }
-const info = (key: string) => `<button type="button" class="info" aria-label="${HELP[key]}" data-tip="${HELP[key]}">!</button>`
+const info = (key: string) => `<span class="info" role="img" aria-label="${HELP[key]}" data-tip="${HELP[key]}">!</span>`
 for (const el of document.querySelectorAll<HTMLElement>('[data-help]')) el.outerHTML = info(el.dataset.help!)
 
 // Slider position t in 0..1 to value: availability is linear in its number of nines, a log slider with min 0 snaps to 0 at the left end

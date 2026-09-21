@@ -4,7 +4,7 @@
   --paper: #FBF8F3; --ink: #2B2320; --muted: #8A8078;
   --given: #33415C; --given-bg: #E6E9F0;
   --choice: #D98A45; --choice-bg: #F7EBDD;
-  --good: #5B7F62; --good-bg: #E4EAE4; --warn: #C9A24B; --bad: #8C2F39;
+  --action: #2E6BD6; --good: #5B7F62; --good-bg: #E4EAE4; --warn: #C9A24B; --bad: #8C2F39;
 }
 
 * { box-sizing: border-box; }
@@ -18,8 +18,8 @@ a { color: var(--given); }
 button, select { font: inherit; color: inherit; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 8px; padding: 3px 10px; cursor: pointer; }
 button:hover { background: var(--choice-bg); }
 /* Page-to-page navigation, shown under each page's mascot */
-a.button { display: block; margin: 8px 0 12px; padding: 8px 12px; border-radius: 8px; background: var(--ink); color: var(--paper); font: 600 15px system-ui, sans-serif; text-align: center; text-decoration: none; }
-a.button:hover { background: var(--given); }
+a.button { display: block; margin: 8px 0 12px; padding: 8px 12px; border-radius: 8px; background: var(--action); color: var(--paper); font: 600 15px system-ui, sans-serif; text-align: center; text-decoration: none; }
+a.button:hover { filter: brightness(0.9); }
 #presets { display: flex; flex-wrap: wrap; gap: 6px; }
 #blurb { min-height: 1.45em; font-style: italic; }
 
@@ -73,11 +73,11 @@ th, td { text-align: right; padding: 2px 4px; border-top: 1px solid var(--muted)
 th:first-child { text-align: left; }
 details ul { padding-left: 18px; }
 
-/* "!" help buttons; the bubble is sized by the nearest positioned container so it never leaves the page */
+/* "!" help marks, shown only while the mark itself is hovered; the bubble is sized by the nearest positioned container so it never leaves the page */
 label, h2, figcaption, #tiles .card { position: relative; }
-.info { all: unset; display: inline-block; width: 14px; margin-left: 5px; border: 1.5px solid; border-radius: 50%; font: 700 10px/14px system-ui, sans-serif; text-align: center; vertical-align: 1px; cursor: help; color: var(--muted); }
-.info:hover, .info:focus { color: var(--ink); }
-.info:hover::after, .info:focus::after { content: attr(data-tip); position: absolute; z-index: 9; top: 100%; left: 0; right: 0; margin-top: 4px; padding: 8px 10px; border-radius: 8px; background: var(--ink); color: var(--paper); font: 400 12px/1.45 system-ui, sans-serif; text-align: left; text-transform: none; letter-spacing: 0; }
+.info { display: inline-block; width: 14px; margin-left: 5px; border: 1.5px solid; border-radius: 50%; font: 700 10px/14px system-ui, sans-serif; text-align: center; vertical-align: 1px; cursor: help; color: var(--muted); }
+.info:hover { color: var(--ink); }
+.info:hover::after { content: attr(data-tip); position: absolute; z-index: 9; top: 100%; left: 0; right: 0; margin-top: 4px; padding: 8px 10px; border-radius: 8px; background: var(--ink); color: var(--paper); font: 400 12px/1.45 system-ui, sans-serif; text-align: left; text-transform: none; letter-spacing: 0; }
 .worse { color: var(--bad); }
 .better { color: var(--good); }
 #paths { margin: 0 0 8px; font-size: 12px; }
