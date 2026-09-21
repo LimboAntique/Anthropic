@@ -5,15 +5,15 @@ import { PRESETS } from '../src/engine/presets'
 import { scaleForSim, simulate } from '../src/engine/sim'
 import type { Params } from '../src/contract/types'
 
-const worst = { grid: 0, validate: 0 }
-afterAll(() => console.log(`max |model - sim|: grid ${(worst.grid * 100).toFixed(2)}pp, Validate path ${(worst.validate * 100).toFixed(2)}pp`))
+const worst = { grid: 0, validate: 0, age: 0 }
+afterAll(() => console.log(`max |model - sim|: grid ${(worst.grid * 100).toFixed(2)}pp, Validate path ${(worst.validate * 100).toFixed(2)}pp; grid stale age within ${(worst.age * 100).toFixed(1)}%`))
 
 // Largest gap between model and simulation over miss rate and stale rate
 function gap(params: Params, requests: number, into: keyof typeof worst, seed = 1) {
   const m = evaluate(params), s = simulate({ id: 0, params, requests, seed })
   const d = Math.max(Math.abs(m.missRate - s.missRate), Math.abs(m.staleRate - s.staleRate))
   worst[into] = Math.max(worst[into], d)
-  return { d, note: `model=${m.missRate.toFixed(4)}/${m.staleRate.toFixed(4)} sim=${s.missRate.toFixed(4)}/${s.staleRate.toFixed(4)}` }
+  return { d, m, s, note: `model=${m.missRate.toFixed(4)}/${m.staleRate.toFixed(4)} sim=${s.missRate.toFixed(4)}/${s.staleRate.toFixed(4)}` }
 }
 
 // Grid: skew x cached fraction x write policy x TTL (none, just above the eviction age Tc, equal to it, far below it)
@@ -25,7 +25,15 @@ for (const alpha of [0, 0.8, 1.2, 2]) for (const frac of [0.01, 0.1]) for (const
     const tc = evaluate(base).evictionAgeSec
     for (const ttlSec of [Infinity, 1.5 * tc, tc, tc / 10]) {
       // Long enough to fill the cache several times over, so the measured half is stationary
-      const g = gap({ ...base, redis: { ...base.redis, ttlSec } }, Math.min(8e6, Math.max(5e5, 8 * (rps + wps) * tc)), 'grid')
+      const requests = Math.min(8e6, Math.max(5e5, 8 * (rps + wps) * tc))
+      const g = gap({ ...base, redis: { ...base.redis, ttlSec } }, requests, 'grid')
+      // Stale age is a duration, so it is compared relatively, where enough stale reads were sampled. Hot keys all start
+      // their first TTL cycle at time zero, so the measured half must span many cycles or it samples cache ages unevenly.
+      if (g.s.staleRate > 0.02 && requests / (rps + wps) > 40 * ttlSec) {
+        const rel = Math.abs(g.m.staleAgeSec / g.s.staleAgeSec - 1)
+        worst.age = Math.max(worst.age, rel)
+        expect(rel, `ttl=${ttlSec} stale age model=${g.m.staleAgeSec} sim=${g.s.staleAgeSec}`).toBeLessThan(0.1)
+      }
       expect(g.d, `ttl=${ttlSec} ${g.note}`).toBeLessThan(0.02)
     }
   }, 30_000)

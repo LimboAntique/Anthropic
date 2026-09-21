@@ -59,12 +59,17 @@ test('single key, ttl-only writes: hit rate unchanged, reads after the first wri
   const r = run(params({ keys: 1, rps: lam, wps: w }, { ttlSec: T }))
   expect(r.missRate).toBeCloseTo(1 / (1 + lam * T), 2)
   expect(r.staleRate).toBeCloseTo((lam * (T - l)) / (1 + lam * T), 2)
+  // A read at time t after a first write at x < T is t - x out of date: E[(T-x)²/2] over E[T-x], which is e - 2 here
+  const age = (T * T - (2 * T) / w + (2 * -Math.expm1(-w * T)) / (w * w)) / (2 * (T - l))
+  expect(age).toBeCloseTo(Math.E - 2, 12)
+  expect(r.staleAgeSec / age).toBeCloseTo(1, 1)
 })
 
 test('single key, invalidating writes: cached time shrinks to ℓ and nothing is stale', () => {
   const r = run(params({ keys: 1, rps: lam, wps: w }, { ttlSec: T, writePolicy: 'invalidate' }))
   expect(r.missRate).toBeCloseTo(1 / (1 + lam * l), 2)
   expect(r.staleRate).toBe(0)
+  expect(r.staleAgeSec).toBe(0)
 })
 
 // With room for every key nothing is evicted, so each Zipf key is an independent copy of the single-key case
@@ -96,8 +101,8 @@ function reference({ id, params: { sys, redis }, requests, seed }: SimRequest): 
   let sum = 0
   for (const x of weights) sum += x
   const cap = Math.floor((redis.memGB * 1e9) / (sys.objBytes + 100))
-  const cache = new Map<number, { born: number; stale: boolean }>()
-  let now = 0, reads = 0, hits = 0, stale = 0
+  const cache = new Map<number, { born: number; dirtied?: number }>() // dirtied: time of the first write since insertion
+  let now = 0, reads = 0, hits = 0, stale = 0, age = 0
   for (let i = 0; i < requests; i++) {
     now -= Math.log(1 - rand()) / (sys.rps + sys.wps)
     for (const [k, e] of cache) if (e.born + redis.ttlSec <= now) cache.delete(k)
@@ -106,34 +111,37 @@ function reference({ id, params: { sys, redis }, requests, seed }: SimRequest): 
     for (let acc = weights[0]; k < sys.keys - 1 && acc <= u; acc += weights[++k]);
     const e = cache.get(k)
     if (rand() * (sys.rps + sys.wps) < sys.wps) {
-      if (e) redis.writePolicy === 'invalidate' ? cache.delete(k) : (e.stale = true)
+      if (e) redis.writePolicy === 'invalidate' ? cache.delete(k) : (e.dirtied ??= now)
       continue
     }
     if (i >= requests / 2) reads++
     if (e) {
       cache.delete(k)
       cache.set(k, e)
-      if (i >= requests / 2) hits++, (stale += +e.stale)
+      if (i >= requests / 2) hits++
+      if (i >= requests / 2 && e.dirtied !== undefined) stale++, (age += now - e.dirtied)
     } else if (cap >= 1) {
       if (cache.size === cap) cache.delete(cache.keys().next().value!)
-      cache.set(k, { born: now, stale: false })
+      cache.set(k, { born: now })
     }
   }
-  return { id, missRate: 1 - hits / reads, staleRate: stale / reads }
+  return { id, missRate: 1 - hits / reads, staleRate: stale / reads, staleAgeSec: stale ? age / stale : 0 }
 }
 
 test('linked-list cache agrees bit for bit with a naive Map reference while eviction, expiry and writes interleave', () => {
-  const seen: number[] = []
+  const seen: number[] = [], ages: number[] = []
   for (const writePolicy of ['ttl-only', 'invalidate'] as const) for (const ttlSec of [Infinity, 5, 0.5]) for (const slots of [1, 10, 60]) for (const alpha of [0, 1.2]) {
     const req = { id: 3, params: params({ keys: 50, alpha, rps: 20, wps: 5 }, { memGB: slots / 1e6, ttlSec, writePolicy }), requests: 2e4, seed: slots }
     const r = simulate(req)
     expect(r, `${writePolicy} ttl=${ttlSec} slots=${slots} α=${alpha}`).toEqual(reference(req))
     seen.push(r.missRate, r.staleRate)
+    ages.push(r.staleAgeSec)
   }
   // The battery is not vacuous: rates are numbers and cover misses, hits and stale reads
   expect(seen.every((x) => x >= 0 && x <= 1)).toBe(true)
   expect(Math.max(...seen)).toBeGreaterThan(0.9)
   expect(seen.filter((x) => x > 0.05 && x < 0.5).length).toBeGreaterThan(10)
+  expect(ages.filter((x) => x > 0).length).toBeGreaterThan(10)
 })
 
 test('same seed reproduces the result, other seeds differ by sampling noise only', () => {

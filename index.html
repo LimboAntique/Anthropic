@@ -42,11 +42,17 @@
             <div id="chart-ttl"></div>
           </figure>
           <figure>
-            <figcaption><b>Model vs simulation</b><span data-help="chartParity"></span> <span>● miss</span> <span>□ stale</span></figcaption>
-            <div id="chart-parity"></div>
-            <p><button type="button" id="validate">Validate with simulation</button> <span id="sim-status">Replays the scaled workload through a real LRU + TTL cache in a Web Worker; points on the diagonal mean the model can be trusted.</span></p>
+            <figcaption><b>Which keys are cached</b><span data-help="chartRank"></span> <span class="key">hit probability of a key</span> <span class="key base">share of reads so far</span> <span class="key ideal">ideal cache ends here</span></figcaption>
+            <div id="chart-rank"></div>
           </figure>
         </div>
+        <section id="trust">
+          <h2><small>The referee</small>Can you trust these numbers?</h2>
+          <div id="chart-parity"></div>
+          <p class="legend">Each point is one experiment: <span>● miss rate</span> <span>□ stale-read rate</span>. Across: what the formulas predict. Up: what the simulation measured. On the diagonal, they agree.</p>
+          <p>Everything else on this page comes from formulas: fast enough to follow a slider, but an approximation. This panel checks them against the real thing. The button replays a scaled-down copy of your workload, millions of requests, through an actual LRU list with real TTL timers, and simply counts the misses and stale reads. It uses none of the formulas. It runs your settings and eight variations: four memory sizes and four TTLs.</p>
+          <p><button type="button" id="validate">Run the simulation</button> <span id="sim-status">Not run yet.</span></p>
+        </section>
         <section id="lessons" class="card">
           <h2>Six lessons, each with something to try</h2>
           <details open>
@@ -67,7 +73,7 @@
           </details>
           <details>
             <summary>4. Staleness follows the hot keys, not the write ratio</summary>
-            <p>If writes only go to the database, a cached value stays wrong until its TTL fires. How often that happens to a key depends on how many times it is rewritten during one TTL, that is, its own write rate &times; TTL. Popular keys tend to be written most, so they are rewritten many times per TTL, and they are also the keys that serve most reads. One write per hundred reads with a one hour TTL can leave most reads stale. The remedies both cost misses: a shorter TTL, or deleting the key on every write.</p>
+            <p>If writes only go to the database, a cached value stays wrong until its TTL fires. How often that happens to a key depends on how many times it is rewritten during one TTL, that is, its own write rate &times; TTL. Popular keys tend to be written most, so they are rewritten many times per TTL, and they are also the keys that serve most reads. One write per hundred reads with a one hour TTL can leave most reads stale. How stale matters as much as how often: <i>Stale age</i> is how long ago the database value changed when an old copy is served, and its worst case is the TTL. Without a TTL a hot key is never evicted, so its stale copy is never corrected. The remedies both cost misses: a shorter TTL, or deleting the key on every write.</p>
             <p><button type="button" data-preset="Hot keys are written too">Try it: Hot keys are written too</button> Shorten the TTL, then switch <i>On write</i> to invalidate, and watch stale reads trade against misses.</p>
           </details>
           <details>

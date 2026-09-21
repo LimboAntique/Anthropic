@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { DEFAULTS } from '../src/contract/inputs'
 import type { Params } from '../src/contract/types'
-import { bins, curves, evaluate, life, meanLatency } from '../src/engine/model'
+import { bins, byRank, curves, evaluate, life, meanLatency } from '../src/engine/model'
 
 const INF = Infinity
 const mk = (sys: Partial<Params['sys']> = {}, redis: Partial<Params['redis']> = {}): Params => ({ sys: { ...DEFAULTS.sys, ...sys }, redis: { ...DEFAULTS.redis, ...redis } })
@@ -100,4 +100,31 @@ test('on average the cache pays off exactly when the hit rate exceeds redis late
   expect(meanLatency(p, 1 - m.breakEvenHit).withCache).toBeCloseTo(m.db, 9)
   expect(meanLatency(p, 1).withCache).toBeCloseTo(m.db + m.redis, 9)
   expect(meanLatency(mk({}, { availability: 0 }), 0).withCache).toBeCloseTo(p.redis.timeoutMs + m.db, 9)
+})
+
+test('per-rank hit probabilities fall with rank and add up to the overall hit rate', () => {
+  for (const p of [DEFAULTS, mk({ wps: 2000 }, { writePolicy: 'invalidate' }), mk({}, { ttlSec: 5, memGB: 8 })]) {
+    const { points, capacity } = byRank(p)
+    let hit = 0
+    points.forEach((pt, i) => {
+      if (i) expect(pt.hit).toBeLessThanOrEqual(points[i - 1].hit + 1e-12)
+      hit += pt.hit * (pt.traffic - (i ? points[i - 1].traffic : 0))
+    })
+    expect(points[points.length - 1].traffic).toBeCloseTo(1, 9)
+    expect(hit).toBeCloseTo(1 - evaluate(p).missRate, 9)
+    expect(capacity).toBeLessThanOrEqual(p.sys.keys)
+  }
+})
+
+test('stale age matches the closed form for a fixed timer and is unbounded without a TTL', () => {
+  // One key, no eviction: reads land uniformly over [0,T]; a read at age t is t - (1 - e^{-wt})/w out of date
+  const [T, w] = [100, 0.05]
+  const fresh = (1 - Math.exp(-w * T)) / w
+  const expected = ((T * T) / 2 - (T - fresh) / w) / (T - fresh)
+  const o = evaluate(mk({ keys: 1000, alpha: 0, rps: 1000, wps: 1000 * w }, { memGB: 10, ttlSec: T }))
+  expect(o.evictionAgeSec).toBe(Infinity)
+  expect(o.staleAgeSec).toBeCloseTo(expected, 6)
+  expect(o.staleAgeSec).toBeLessThan(T)
+  expect(evaluate(mk({ wps: 100 }, { ttlSec: Infinity })).staleAgeSec).toBe(Infinity)
+  expect(evaluate(mk({ wps: 100 }, { writePolicy: 'invalidate' })).staleAgeSec).toBe(0)
 })

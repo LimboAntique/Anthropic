@@ -22,6 +22,7 @@ Things the tool makes visible that most "just add Redis" conversations miss:
 - **Without a TTL, hit rate does not depend on traffic volume** — only on skew and on the cached fraction. Traffic matters only through the TTL and through writes.
 - **P99 is still a database read** until misses fall below 1%. With miss rate `m`, the cached P99 equals the database's `1 − 0.01/m` quantile plus the Redis round trip: in the default scenario the median gets 8× faster (5 → 0.6 ms) while P99 only goes from 50 to 27 ms.
 - **Staleness follows the hot keys, not the write ratio.** Stale reads scale with *per-key* write rate × TTL. If hot keys are also written most, 1 write per 100 reads with a one hour TTL leaves most reads stale.
+- **How stale, not only how often.** *Stale reads* is the share of reads that disagree with the database; *Stale age* is how long ago the database value changed when that happens. The worst case is the TTL, and with no TTL a hot key is never corrected at all. The simulator measures the same quantity; the model is within 2.5% of it.
 - **A cache that carries load is an availability dependency.** If the database cannot absorb full traffic, a Redis outage is a full outage.
 
 ## The model
@@ -36,6 +37,7 @@ life(λ, w, T, Tc) = ∫₀ᵀ P(L > t) · e^{-wt} dt                      close
 hit_i  = occupancy_i = λℓ / (1 + λℓ)                                renewal-reward + PASTA
 Tc     : Σ occupancy_i(Tc) = C        (Tc = ∞ if the TTL alone keeps memory from filling)
 stale_i = hit_i · (1 − life(λ, w, …) / life(λ, 0, …))               ttl-only policy
+age_i   = (∫₀ᵀ t·P(L > t) dt − (ℓ₀ − ℓ_w)/w) / (ℓ₀ − ℓ_w)             mean time a stale read's value has been out of date
 ```
 
 Limits it reproduces exactly: no TTL → Che's `1 − e^{-λTc}`; no eviction → the classic fixed-timer `λT/(1+λT)`; uniform popularity → `C/N`.
@@ -51,7 +53,7 @@ Popularity is evaluated on 256 exact ranks plus geometric bins, so 10⁹ keys co
 | 48-point grid (miss rate and stale rate) | **0.25 pp** |
 | off-grid probes (tiny cache, TTL = 1.5·Tc) | 0.51 pp |
 
-The page's **Validate** button runs the same simulator in a Web Worker and plots model against simulation.
+On the page, the "Can you trust these numbers?" panel runs the same simulator in a Web Worker for the current settings and eight variations, and plots prediction against measurement.
 
 ### Assumptions and non-goals
 

@@ -25,34 +25,54 @@ export function life(lam: number, w: number, T: number, Tc: number): number {
   return seg(w, Tc) + Math.exp(-w * Tc) * seg(w + 1 / m, T - Tc)
 }
 
+// First moment of the cached lifetime: integral over [0,T] of t P(L>t), with the same L = Tc + Exp(m) as life()
+export function lifeMoment(lam: number, T: number, Tc: number): number {
+  if (T <= Tc) return (T * T) / 2
+  const m = Math.expm1(lam * Tc) / lam - Tc, a = T - Tc, x = a / m
+  if (a === Infinity) return m === Infinity ? Infinity : (Tc * Tc) / 2 + Tc * m + m * m
+  const tail = x < 1e-4 ? Tc * a + (a * a) / 2 : Tc * m * -Math.expm1(-x) + m * m * (1 - Math.exp(-x) * (1 + x))
+  return (Tc * Tc) / 2 + tail
+}
+
 interface Solved {
   tc: number
   hit: number
   stale: number
+  staleAge: number // mean seconds a stale read's value has been out of date
   used: number // expected number of cached keys
 }
 
-// Finds the eviction age Tc at which expected occupancy equals capacity, then aggregates hit and stale rates
-function solve(p: Params, cap: number, b = bins(p.sys.keys, p.sys.alpha)): Solved {
+// Hit rate, stale rate and occupancy summed over all bins, as a function of the eviction age
+function aggregate(p: Params, b: { n: number; p: number }[]) {
   const { rps, wps } = p.sys
   const T = p.redis.ttlSec
   const inval = p.redis.writePolicy === 'invalidate'
-  const at = (tc: number): Solved => {
-    let hit = 0, stale = 0, used = 0
+  return (tc: number): Solved => {
+    let hit = 0, stale = 0, used = 0, age = 0
     for (const { n, p: pi } of b) {
       const lam = rps * pi, w = wps * pi
       const l0 = inval ? 0 : life(lam, 0, T, tc), lw = w > 0 || inval ? life(lam, w, T, tc) : l0
       const o = 1 - 1 / (1 + lam * (inval ? lw : l0)) // occupancy equals hit probability (PASTA)
       hit += n * pi * o
       used += n * o
-      if (!inval && w > 0) stale += n * pi * o * (1 - lw / l0)
+      if (!inval && w > 0) {
+        stale += n * pi * o * (1 - lw / l0)
+        // A read at cache age t is E[(t - first write)+] = t - (1 - e^{-wt})/w out of date; integrate over the lifetime, per cycle
+        const perCycle = lifeMoment(lam, T, tc) - (l0 - lw) / w
+        age += l0 === Infinity ? (perCycle === Infinity ? Infinity : 0) : (n * pi * o * perCycle) / l0
+      }
     }
-    return { tc, hit, stale, used }
+    return { tc, hit, stale, staleAge: stale > 0 ? age / stale : 0, used }
   }
+}
+
+// Finds the eviction age Tc at which expected occupancy equals capacity; 36 halvings pin ln Tc to 1e-9, plots get by with fewer
+function solve(p: Params, cap: number, b = bins(p.sys.keys, p.sys.alpha), halvings = 36): Solved {
+  const at = aggregate(p, b)
   const free = at(Infinity)
   if (free.used <= cap) return free
   let lo = -30, hi = 30 // bisection on ln Tc
-  for (let i = 0; i < 36; i++) {
+  for (let i = 0; i < halvings; i++) {
     const mid = (lo + hi) / 2
     at(Math.exp(mid)).used > cap ? (hi = mid) : (lo = mid)
   }
@@ -113,6 +133,7 @@ export function evaluate(p: Params): Outputs {
   return {
     missRate: 1 - s.hit,
     staleRate: s.stale,
+    staleAgeSec: s.staleAge,
     evictionAgeSec: s.tc,
     binding: s.tc < redis.ttlSec ? 'capacity' : 'ttl',
     memUsedGB: (s.used * (sys.objBytes + OVERHEAD)) / 1e9,
@@ -139,12 +160,45 @@ export function curves(p: Params): Curves {
   }
   const miss = 1 - solve(p, capacity(p), b).hit
   const c = cdfs(p, miss)
+  // A database curve shifted by the Redis lookup or by the timeout rises within a few ms of its shift, far narrower than
+  // a log-spaced step out there, so each shift gets its own fine grid on top of the global one
+  const afterShift = [p.redis.p50Ms, p.redis.timeoutMs].flatMap((shift) => logspace(p.sys.dbP50Ms / 50, p.sys.dbP99Ms * 2, 60).map((d) => shift + d))
+  const cdfGrid = [...logspace(0.05, 5000, 240), ...afterShift].sort((x, y) => x - y)
+
+  // Miss vs memory is swept by eviction age instead of memory: each Tc yields the memory it fills and its miss rate
+  // in one pass with no root finding, so the curve can be dense. Past the memory the TTL lets the cache reach it is flat.
+  const bytes = p.sys.objBytes + OVERHEAD
+  const at = aggregate(p, b)
+  const point = (s: Solved) => ({ memGB: (s.used * bytes) / 1e9, miss: 1 - s.hit })
+  const lo = solve(p, capacity(p, 0.01), b), hi = solve(p, capacity(p, 1024), b), free = at(Infinity)
+  const tcMax = p.redis.ttlSec < Infinity ? p.redis.ttlSec : 1000 / (p.sys.rps * b[b.length - 1].p)
+  const swept = lo.tc < Infinity ? logspace(lo.tc, tcMax, 120).map((tc) => point(at(tc))) : []
+  // Flat stretch: from where the cache stops filling, through the corner where the dataset fits, on a grid dense enough for the ideal line
+  const full = point(free).memGB
+  const flat = [full, (p.sys.keys * bytes) / 1e9, ...logspace(0.01, 1024, 240).filter((m) => m > full)].map((memGB) => ({ memGB, miss: 1 - free.hit }))
+  const mem = [{ memGB: 0.01, miss: 1 - lo.hit }, ...[...swept, ...flat].filter((d) => d.memGB > 0.01 && d.memGB < 1024), { memGB: 1024, miss: 1 - hi.hit }]
   return {
-    missVsMem: logspace(0.01, 1024, 40).map((memGB) => ({ memGB, miss: 1 - solve(p, capacity(p, memGB), b).hit, ideal: 1 - ideal(capacity(p, memGB)) })),
-    vsTtl: logspace(1, 2592000, 40).map((ttlSec) => {
-      const s = solve({ ...p, redis: { ...p.redis, ttlSec } }, capacity(p), b)
+    missVsMem: mem.sort((x, y) => x.memGB - y.memGB).map((d) => ({ ...d, ideal: 1 - ideal(capacity(p, d.memGB)) })),
+    vsTtl: logspace(1, 2592000, 80).map((ttlSec) => {
+      const s = solve({ ...p, redis: { ...p.redis, ttlSec } }, capacity(p), b, 26)
       return { ttlSec, miss: 1 - s.hit, stale: s.stale }
     }),
-    latencyCdf: logspace(0.05, 5000, 80).map((ms) => ({ ms, withCache: c.withCache(ms), baseline: c.baseline(ms) })),
+    latencyCdf: cdfGrid.map((ms) => ({ ms, withCache: c.withCache(ms), baseline: c.baseline(ms) })),
   }
+}
+
+// Per-key view: for each popularity bin, the hit probability of a key at that rank and the share of all reads
+// going to keys at or above it. `capacity` is the rank where an ideal cache (hottest keys pinned) would stop.
+export function byRank(p: Params) {
+  const b = bins(p.sys.keys, p.sys.alpha)
+  const tc = solve(p, capacity(p), b).tc
+  let first = 1, traffic = 0
+  const points = b.map(({ n, p: pi }) => {
+    const lam = p.sys.rps * pi
+    const l = life(lam, p.redis.writePolicy === 'invalidate' ? p.sys.wps * pi : 0, p.redis.ttlSec, tc)
+    const point = { rank: Math.sqrt(first * (first + n - 1)), hit: 1 - 1 / (1 + lam * l), traffic: (traffic += n * pi) }
+    first += n
+    return point
+  })
+  return { points, capacity: Math.min(capacity(p), p.sys.keys) }
 }
