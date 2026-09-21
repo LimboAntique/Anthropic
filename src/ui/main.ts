@@ -65,7 +65,7 @@ const HELP: Record<string, string> = {
   chartMem: 'How the miss rate would change if you bought more or less memory with everything else fixed. The dot is your current choice and the top axis is the monthly cost. The dashed line is a perfect cache that always holds the hottest keys. Where the curve is flat, more memory buys nothing.',
   chartTtl: 'How misses (solid) and stale reads (dotted) change with the TTL. The vertical lines mark your TTL and the eviction age. Right of the eviction age a longer TTL no longer removes misses, it only adds stale reads.',
   chartRank: 'Keys lined up from the most popular (left) to the least. Orange is the chance that a read of that key is a hit. Grey is the share of all reads that go to keys up to that rank, so you can see how much traffic the well-cached keys carry. The green line is where a perfect cache, one that pins the hottest keys as ideal LFU would, runs out of memory: it would hit 100% to the left and 0% to the right. LRU fades out instead, because it also spends slots on cold keys that were read a moment ago. A short TTL pulls the whole orange curve down, even for the hottest keys.',
-  chartCdf: 'Grey is every read going straight to the database. Orange is the same traffic with Redis in front: a hit is answered by Redis alone, but a miss pays for Redis and then the database, so it is slower than having no cache. Read across at any height: where orange is left of grey that share of reads got faster, where it is right of grey they got slower. The dashed line is the hit rate, where the orange curve switches from hits to misses. The table reads off four heights.',
+  chartCdf: 'Latency of every read, sorted from fastest (left) to slowest (right). Pick a percentile on the bottom axis and read its latency off the side: at 50% you see the typical read, at 99% the slow tail. Grey is every read going straight to the database. Orange is the same traffic with Redis in front. Where orange is below grey those reads got faster; where it is above they got slower. The orange line jumps at the dashed line, the hit rate: reads to its left were answered by Redis alone, reads to its right missed and paid for Redis and then the database. If Redis is sometimes down, the last few percent jump again, to the timeout plus a database read. The table reads off four percentiles.',
 }
 const info = (key: string) => `<span class="info" role="img" aria-label="${HELP[key]}" data-tip="${HELP[key]}">!</span>`
 for (const el of document.querySelectorAll<HTMLElement>('[data-help]')) el.outerHTML = info(el.dataset.help!)
@@ -249,14 +249,16 @@ function render() {
     `<br>Average read: ${ms(mean.db)} database only, <b class="${loss ? 'worse' : 'better'}">${ms(mean.withCache)}</b> with Redis. ` +
     `Misses waste a Redis round trip, so the cache only pays off above a hit rate of Redis ÷ database latency = ${pct(mean.breakEvenHit)}; you are at <b class="${loss ? 'worse' : 'better'}">${pct(hit)}</b>.`
 
+  // Latency by percentile: read across to a percentile, up to the latency. The orange line jumps where reads stop being hits.
+  const split = hit * redis.availability
   draw('chart-cdf', {
-    x: { type: 'log', label: 'Latency (ms)', tickFormat: si, domain: [redis.p50Ms / 4, 150] }, // fixed 150 ms ceiling; the curve is sampled to 200 ms so the line runs off the edge instead of stopping short
-    y: { label: 'Reads at least this fast (%)', percent: true, domain: [0, 100] },
+    x: { label: 'Percentile of reads (%)', percent: true, domain: [0, 100], ticks: [0, 25, 50, 75, 90, 99] },
+    y: { type: 'log', label: 'Latency (ms)', tickFormat: si, domain: [redis.p50Ms / 4, 150] }, // fixed 150 ms ceiling; slower reads run off the top
     marks: [
-      Plot.ruleY([hit * redis.availability], { strokeDasharray: '2 3' }),
-      Plot.text([{ y: hit * redis.availability }], { y: 'y', text: () => 'hit rate: below this line Redis alone, above it Redis + database', frameAnchor: 'right', dy: -7, stroke: 'var(--paper)', fill: 'var(--ink)' }),
-      Plot.lineY(c.latencyCdf, { x: 'ms', y: 'baseline', stroke: MUTED, strokeWidth: 2, clip: true }),
-      Plot.lineY(c.latencyCdf, { x: 'ms', y: 'withCache', stroke: CHOICE, strokeWidth: 2, tip: true, clip: true }),
+      Plot.ruleX([split], { strokeDasharray: '2 3' }),
+      Plot.text([{ x: split }], { x: 'x', text: () => 'hit rate: left of this line Redis alone, right of it Redis + database', frameAnchor: 'top', dy: -12, textAnchor: split > 0.5 ? 'end' : 'start', dx: split > 0.5 ? -4 : 4, stroke: 'var(--paper)', fill: 'var(--ink)' }),
+      Plot.line(c.latencyCdf, { x: 'baseline', y: 'ms', stroke: MUTED, strokeWidth: 2, clip: true }),
+      Plot.line(c.latencyCdf, { x: 'withCache', y: 'ms', stroke: CHOICE, strokeWidth: 2, clip: true }),
     ],
   })
   const Q = ['p50', 'p75', 'p90', 'p99'] as const
