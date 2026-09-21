@@ -47,6 +47,40 @@
             <p><button type="button" id="validate">Validate with simulation</button> <span id="sim-status">Replays the scaled workload through a real LRU + TTL cache in a Web Worker; points on the diagonal mean the model can be trusted.</span></p>
           </figure>
         </div>
+        <section id="lessons" class="card">
+          <h2>Six lessons, each with something to try</h2>
+          <details open>
+            <summary>1. A miss is slower than having no cache</summary>
+            <p>A read that finds its key is answered by Redis alone. A read that does not must ask Redis first and the database second, so it costs more than if Redis were not there. The fair comparison is never "Redis versus the database"; it is <i>database only</i> versus <i>Redis + database</i>. On average the cache wins only while the hit rate is above Redis latency ÷ database latency. Below that the average read gets slower, and you pay a monthly bill for the slowdown.</p>
+            <p><button type="button" data-preset="Uniform access">Try it: Uniform access</button> Then raise the memory until the Change row in the latency table turns green.</p>
+          </details>
+          <details>
+            <summary>2. Cache size is a hidden TTL</summary>
+            <p>When memory is full, LRU evicts the key that has gone unread the longest. In steady state that means a key is evicted once it has been idle for a fixed time, the <i>eviction age</i>, which follows from the memory size and the traffic (Che&rsquo;s approximation). So every key lives under two clocks: your TTL, counted from when it was cached, and the eviction age, counted from its last read. Whichever rings first removes the key.</p>
+            <p>This puts memory and TTL in the same unit, seconds, and explains two wastes. A TTL far above the eviction age does nothing for cold keys, because eviction gets there first. A TTL far below it empties the cache before memory fills, and the memory you bought stays idle.</p>
+            <p><button type="button" data-preset="TTL too short">Try it: TTL too short</button> Watch <i>Memory used</i>, then lengthen the TTL until the eviction age tile stops saying &infin;.</p>
+          </details>
+          <details>
+            <summary>3. The median moves, the tail does not</summary>
+            <p>Hits make the typical read fast. But as long as more than 1% of reads miss, the slowest 1% of all reads are misses, and a miss is still a database read with a Redis round trip on top. With a miss rate <i>m</i>, the P99 you see is the database&rsquo;s (1 &minus; 0.01&thinsp;/&thinsp;<i>m</i>) quantile: at 20% misses that is the database P95, not far from its P99. If the goal is tail latency, a cache with a merely good hit rate will disappoint.</p>
+            <p><button type="button" data-preset="P99 barely moves">Try it: P99 barely moves</button> Compare the P50 and P99 columns of the Change row.</p>
+          </details>
+          <details>
+            <summary>4. Staleness follows the hot keys, not the write ratio</summary>
+            <p>If writes only go to the database, a cached value stays wrong until its TTL fires. How often that happens to a key depends on how many times it is rewritten during one TTL, that is, its own write rate &times; TTL. Popular keys tend to be written most, so they are rewritten many times per TTL, and they are also the keys that serve most reads. One write per hundred reads with a one hour TTL can leave most reads stale. The remedies both cost misses: a shorter TTL, or deleting the key on every write.</p>
+            <p><button type="button" data-preset="Hot keys are written too">Try it: Hot keys are written too</button> Shorten the TTL, then switch <i>On write</i> to invalidate, and watch stale reads trade against misses.</p>
+          </details>
+          <details>
+            <summary>5. A cache that carries the load is a dependency, not an optimisation</summary>
+            <p>Once the database is sized for the traffic that gets past the cache, it can no longer survive without it. If Redis fails or restarts empty, every read falls through at once, the database saturates, requests time out, and the cache cannot refill because the reads that would fill it are failing. The system can stay in that state after the original fault is gone (Marc Brooker calls it the sad loop of a bimodal system), and load tests rarely find it because they run with a warm cache.</p>
+            <p>Try it: drag <i>DB capacity</i> below <i>Reads</i> and look at the <i>Redis down</i> figure in the DB load tile, then lower <i>Availability</i> and watch the timeout enter P99.</p>
+          </details>
+          <details>
+            <summary>6. Redis is a database first: its defaults are not cache defaults</summary>
+            <p>Out of the box <code>maxmemory-policy</code> is <code>noeviction</code>: when memory fills, writes fail, nothing new is cached and the hit rate quietly decays as keys expire. A cache needs <code>allkeys-lru</code> or a similar policy chosen on purpose. Redis&rsquo; LRU is approximate (it samples 5 keys and evicts the idlest), which tracks true LRU closely. Expired keys are removed lazily on access plus by a background sweep, so they can hold memory a little longer than this model assumes. And a <code>GET</code> does not refresh a TTL, which is why lesson 2 needs two clocks.</p>
+          </details>
+          <p><small>Further reading: <a href="https://arxiv.org/abs/1202.3974">why Che&rsquo;s approximation works</a> &middot; <a href="https://www.usenix.org/conference/osdi20/presentation/yang">Twitter&rsquo;s 153 cache clusters</a> &middot; <a href="https://arxiv.org/abs/2412.20221">the cost of TTL freshness</a> &middot; <a href="https://brooker.co.za/blog/2021/08/27/caches.html">Caches, Modes, and Unstable Systems</a> &middot; <a href="https://redis.io/docs/latest/develop/reference/eviction/">Redis eviction</a></small></p>
+        </section>
         <details>
           <summary>Assumptions &amp; non-goals</summary>
           <ul>

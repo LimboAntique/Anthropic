@@ -125,6 +125,13 @@ for (const preset of PRESETS) {
   $('presets').append(b)
 }
 
+// "Try it" buttons inside the lessons load the preset of the same name and return to the verdict
+for (const b of document.querySelectorAll<HTMLElement>('[data-preset]'))
+  b.onclick = () => {
+    ;([...$('presets').children] as HTMLElement[]).find((x) => x.textContent === b.dataset.preset)!.click()
+    scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
 // Enforces P99 >= P50, writes the state back into every control and schedules one render per frame
 let frame = 0
 function update() {

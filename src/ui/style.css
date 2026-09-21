@@ -81,3 +81,6 @@ label, h2, figcaption, #tiles .card { position: relative; }
 .worse { color: var(--bad); }
 .better { color: var(--good); }
 #paths { margin: 0 0 8px; font-size: 12px; }
+#lessons details { color: var(--ink); font-size: 14px; border-top: 1px solid var(--muted); padding: 8px 0; }
+#lessons summary { font: 600 15px Georgia, 'Iowan Old Style', serif; cursor: pointer; }
+#lessons p { max-width: 72ch; margin: 8px 0 0; }
