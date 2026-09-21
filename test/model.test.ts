@@ -88,6 +88,7 @@ test('outputs are finite across extreme inputs and fast enough for slider draggi
   for (let i = 0; i < 5; i++) curves(big)
   const cu = (performance.now() - t) / 5
   console.log(`evaluate ${ev.toFixed(2)} ms, curves ${cu.toFixed(1)} ms, bins ${bins(1e9, 1).length}`)
-  expect(ev).toBeLessThan(5)
-  expect(cu).toBeLessThan(60)
+  // Bounds are ten times the laptop figures: shared CI runners are slow, and only an algorithmic blow-up should fail
+  expect(ev).toBeLessThan(50)
+  expect(cu).toBeLessThan(600)
 })
