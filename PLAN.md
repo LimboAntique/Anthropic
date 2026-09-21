@@ -180,18 +180,28 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 
 ## 8. TODO（所有 agent 共享的状态表）
 
-**进度快照（2026-09-20，由主会话汇总；逐项状态以下方清单为准）**
+**进度快照（2026-09-21，由主会话汇总；逐项状态以下方清单为准）**
+
+线上：https://limboantique.github.io/Anthropic/ 与 `/exam.html`；main = `b6d2985`，7 个测试文件 56 个测试全绿，CI 自动部署。
 
 | 阶段 / 轨道 | 状态 | 说明 |
 |---|---|---|
-| 阶段 0 脚手架与协议 | ✅ 6/6 | 已部署 https://limboantique.github.io/Anthropic/（目前为占位页）；目录拆为 `contract/` `engine/` `ui/` |
-| 轨道 A 模型 → 预设与结论 | ✅ 5/5 | main 上 `8962b6d`、`72c9d42`（本地，未 push）；18 个测试全绿；`evaluate` 0.9ms / `curves` 44ms |
-| 轨道 B 仿真 → 交叉验证 | ✅ 5/5 | 分支 `track/verify`（`3510bc0`，待合入 main）；**模型无需修改**：48 点网格最大偏差 0.25pp，网格外 0.51pp |
-| 轨道 C UI | 🔄 0/6 进行中 | worktree `Anthropic-ui`，改动尚未提交；关键路径在此 |
-| 集成与交付 | ⏳ 0/7 | I1 等 C 完成；D1（README 骨架）依赖已满足，可随时开始 |
-| 扩展 | ⏳ 0/5 | X1a（完整点评规则）依赖已满足，可随时开始 |
+| 阶段 0 脚手架与协议 | ✅ 6/6 | 目录拆为 `contract/` `engine/` `ui/` |
+| 轨道 A 模型 → 预设与结论 | ✅ 5/5 | `evaluate` 0.9ms / `curves` 44ms |
+| 轨道 B 仿真 → 交叉验证 | ✅ 5/5 | 模型无需修改：48 点网格最大偏差 0.25pp |
+| 轨道 C UI | ✅ 6/6 | Classroom paper 风格；已合入 main |
+| 集成 | ✅ 3/3 | 线上逐预设验收、🎲 压测、Pages 子路径下 Worker 均通过 |
+| 交付物 | 🔄 2/4 | D1 README 骨架、D3 视频提纲完成；**D2（4 处 `TODO(author)`）与 D4（导出 transcripts）需用户完成** |
+| 扩展 | ✅ 5/6 | X1a 规则集、X1b 面板、X2 吉祥物、X3 教育内容、X5 考试页完成；X4（逐 rank 图 / LFU）未做 |
 
-待用户判断：① 脏读率对"写与读同分布"假设很敏感（默认配置 60% 脏读）——保留并写进假设面板，还是加"写分布独立"开关；② "P99 在 miss<1% 前不改善"应表述为"P99 仍是一次 DB 读（DB 的 1−0.01/miss 分位）"。
+计划外的追加（用户在集成后提出，均已上线）：
+- 延迟图改为题眼并移到第一张：**database only vs Redis + database**，列出 hit / miss / Redis down 三条路径、平均延迟盈亏平衡点（命中率 > Redis 延迟 ÷ DB 延迟）、各分位 Change 行（变慢标红）、命中率虚线；横轴按数据自适应。`engine/model.ts` 新增 `meanLatency()`。
+- 数字卡片 **Cost per ms saved**：月费 ÷ 平均读延迟降低的毫秒数，附"内存翻倍"的边际值；变慢时显示"⚠ slower"。已知局限：不计 DB 卸载的价值，也不乘流量。
+- "Uniform access" 预设内存改为 250 MB，使其成为真正的全分位负提升示例。
+- 满分吉祥物改为与其余头像一致的大头风格（`face_full_marks.svg`），`generate.py` 删去全身绘制代码。
+- CI 上的性能断言放宽为本机实测的 10 倍（共享 runner 慢，首次部署因此失败过一次）。
+
+待用户判断：脏读率对"写与读同分布"假设很敏感（默认配置 60% 脏读）——目前写进 README 假设与页面 Assumptions；是否加"写分布独立"开关未定。
 
 规则：**依赖全部 `[x]` 才能开工**；开工时把 `[ ]` 改成 `[~]` 并写上轨道名；完成且验收通过后改成 `[x]` 并在行尾附 commit hash；**只改自己那一行**。唯一状态源是主目录的 `/Users/blakexu/Documents/PythonProjects/Anthropic/PLAN.md`：所有 agent（包括在 worktree 里的）都按这个绝对路径读写，不要改 worktree 内的副本。
 
@@ -238,7 +248,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 - [x] **X1a** `advisor.ts` 完整规则集 — 依赖：A5 — e4659e9；共 12 条规则（3 bad / 8 warn / 1 good）
 - [x] **X1b** 右侧 Advisor 面板（渲染全部 `advise()` 条目）— 依赖：C3 — (轨道 C) 489886c (track/ui)
 - [x] **X2** (轨道 C) 吉祥物 Professor Amber 入驻 Advisor 面板，表情绑定 `level` — 依赖：X1b — 素材已精简（e4659e9）：`cat_teacher/face_{happy,thinking,stern,surprised}.svg`（同一 viewBox，可直接互换）+ `face_full_marks.svg`（同为大头风格，旁标 A+）；映射 good→happy、warn→thinking、bad→stern、DB 过载/承重墙→surprised、全部 good→face_full_marks — 19eb2cc (track/ui)
-- [ ] **X3** 教育内容 — 依赖：I3
+- [x] **X3** 教育内容 — 依赖：I3 — e41a9fa；主页 `#lessons`：6 课（miss 比无缓存慢 / 容量是隐形 TTL / 中位动而尾部不动 / 脏读跟着热 key / 承重缓存与双稳态 / Redis 默认配置陷阱），其中 4 课带 Try it 按钮加载同名预设，附延伸阅读
 - [x] **X5** 考试页 `exam.html`：50 题题库（`src/engine/quiz.ts`，数字类题目由测试用 `evaluate()` 复核）→ 随机抽 5 道选择题 → 打分 + 逐题解释；专属监考吉祥物猫头鹰（`cat_teacher/proctor_*.svg`）— 依赖：A3；新增文件 `exam.html` `src/ui/exam.ts` `src/ui/exam.css` `test/quiz.test.ts`，并改 `vite.config.ts` 为多页 — f4fe2bd；浏览器验收通过（答题→交卷→打分/解释/猫头鹰表情，无 console 报错）
 - [ ] **X4** 逐 rank 命中概率图 / LFU 对比 — 依赖：A3, C4
 
