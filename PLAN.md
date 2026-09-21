@@ -182,20 +182,20 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 
 **进度快照（2026-09-21，由主会话汇总；逐项状态以下方清单为准）**
 
-线上：https://limboantique.github.io/Anthropic/ 与 `/exam.html`；main = `c7bce70`，7 个测试文件 57 个测试全绿，CI 自动部署。
+线上：https://limboantique.github.io/Anthropic/ 与 `/exam.html`；main = `079dd56`，7 个测试文件 88 个测试全绿，CI 自动部署。
 
 | 阶段 / 轨道 | 状态 | 说明 |
 |---|---|---|
 | 阶段 0 脚手架与协议 | ✅ 6/6 | 目录拆为 `contract/` `engine/` `ui/` |
 | 轨道 A 模型 → 预设与结论 | ✅ 5/5 | `evaluate` 0.9ms / `curves` 44ms |
-| 轨道 B 仿真 → 交叉验证 | ✅ 5/5 | 模型无需修改：48 点网格最大偏差 0.25pp |
+| 轨道 B 仿真 → 交叉验证 | ✅ 5/5 | 模型无需修改：64 点网格最大偏差 0.35pp，Validate 路径 1.09pp，stale age 相对误差 ≤2.5% |
 | 轨道 C UI | ✅ 6/6 | Classroom paper 风格；已合入 main |
 | 集成 | ✅ 3/3 | 线上逐预设验收、🎲 压测、Pages 子路径下 Worker 均通过 |
 | 交付物 | 🔄 2/4 | D1 README 骨架、D3 视频提纲完成；**D2（4 处 `TODO(author)`）与 D4（导出 transcripts）需用户完成** |
 | 扩展 | ✅ 6/6 | X1a 规则集、X1b 面板、X2 吉祥物、X3 教育内容、X4 逐 rank 图、X5 考试页 |
-| 追加（集成后） | ✅ 12/12 | X6–X17：延迟图成为题眼、性价比指标、裁判面板、吉祥物统一风格、帮助按钮等 |
+| 追加（集成后） | ✅ 15/15 | X6–X20：延迟图成为题眼、性价比指标、裁判面板、吉祥物统一风格、帮助按钮等 |
 
-集成后追加的改动逐条列在下方清单的 **追加** 一节（X6–X17），全部已上线。
+集成后追加的改动逐条列在下方清单的 **追加** 一节（X6–X20），全部已上线。
 
 待用户判断：脏读率对"写与读同分布"假设很敏感（默认配置 60% 脏读）——目前写进 README 假设与页面 Assumptions；是否加"写分布独立"开关未定。
 
@@ -248,7 +248,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 - [x] **X5** 考试页 `exam.html`：50 题题库（`src/engine/quiz.ts`，数字类题目由测试用 `evaluate()` 复核）→ 随机抽 5 道选择题 → 打分 + 逐题解释；专属监考吉祥物猫头鹰（`cat_teacher/proctor_*.svg`）— 依赖：A3；新增文件 `exam.html` `src/ui/exam.ts` `src/ui/exam.css` `test/quiz.test.ts`，并改 `vite.config.ts` 为多页 — f4fe2bd；浏览器验收通过（答题→交卷→打分/解释/猫头鹰表情，无 console 报错）
 - [x] **X4** 逐 rank 命中概率图 / LFU 对比 — 依赖：A3, C4 — 51eac81；图 “Which keys are cached”：逐 rank 命中概率（LRU 渐降）+ 累计流量 + 理想缓存（= 完美 LFU，钉住最热 key）的截止线；`engine/model.ts` 新增 `byRank()`，测试验证逐 rank 加权和等于总命中率。LFU 对比即此截止线与图①的 ideal 线，未另建 LFU 模型
 
-**追加（集成后用户提出，12/12 完成；均已上线）**
+**追加（集成后用户提出，15/15 完成；均已上线）**
 - [x] **X6** 延迟图成为题眼：**database only vs Redis + database**；列出 hit / miss / Redis down 三条路径、平均延迟盈亏平衡点（命中率 > Redis 延迟 ÷ DB 延迟）、各分位 Change 行（变慢标红）、命中率虚线；`engine/model.ts` 新增 `meanLatency()` 并有测试 — bca8917
 - [x] **X7** 延迟图移到第一张；横轴按数据自适应，并在两条曲线都到 100% 处收尾 — 330a09d、f060ca8
 - [x] **X8** 性价比指标卡片 **Cost per ms saved**（月费 ÷ 平均读延迟降低的毫秒数，附"内存翻倍"的边际值；变慢时显示"⚠ slower"）。已知局限：不计 DB 卸载的价值，也不乘流量 — 330a09d
@@ -261,6 +261,9 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 - [x] **X15** 主页与考试页互相跳转的按钮放在各自吉祥物下方；页面标题放大，Advisor 面板滚动时保持可见 —（UI agent）ff11020、7980a0b、14865b1
 - [x] **X16** CI 性能断言放宽为本机实测的 10 倍（共享 runner 慢，首次部署因此失败过一次）— 2671e92
 - [x] **X17** 脏读的时间维度 **Stale age**：发生脏读时读到的值平均已过期多久（最坏情况 = TTL；不设 TTL 时为 ∞）。**协议新增字段** `Outputs.staleAgeSec`、`SimResult.staleAgeSec`（只增不改）；模型闭式解 `lifeMoment()`；仿真独立计量；交叉验证在可测的网格点上相对误差 ≤2.5%；数字卡片、Advisor 文案、第 4 课、README 同步 — da0a0cb
+- [x] **X18** 延迟图改为"百分位 × 延迟"：横轴百分位（刻度 0/25/50/75/90/99，与表格列对应），纵轴线性 ms、上限取较慢的 P99 × 1.15（不超过 150 ms）；命中率由横线改为竖线。此前两轮：CDF 采样到 200 ms、横轴定 150 ms（后被本项取代）— 316a4cf、e4c7ada、48f4ab2
+- [x] **X19** **Latency saved by Redis** 差值图：每个百分位上 DB only − (Redis + DB)，零线以上绿色 = 变快，以下红色 = 变慢（miss 多付一次 Redis 往返），带命中率虚线；`engine/model.ts` 新增 `latencyGap()`，测试验证命中率为 0 时每个百分位恰好慢一次 Redis 往返 — 648fa51、079dd56
+- [x] **X20** 仿真加固（验证 agent）：`scaleForSim` 按冷启动时长分配事件预算、缓存槽位下限 64；新增"Validate 按钮路径"测试（默认、全部预设、慢热边界、16 个随机系统）— 82e4184、e236d5a
 
 ## 9. 扩展（全部完成，逐项状态见 §8 清单）
 
@@ -269,7 +272,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 - [x] MX3 教育内容："为什么容量就是一个隐形 TTL"、noeviction 陷阱、Brooker 双稳态。
 - [x] MX4 按 rank 的逐 key 命中概率图；LFU 对比。
 - [x] MX5 考试页：50 题题库随机抽 5 题、打分与逐题解释，监考猫头鹰 Proctor Hoot；题库里的数值结论由测试用 `evaluate()` 复核。
-- [x] 集成后的追加见 §8 的 X6–X17。
+- [x] 集成后的追加见 §8 的 X6–X20。
 
 **保持不做**：key 设计、穿透/雪崩/多级缓存、对象大小差异、副本滞后；另加非平稳流量（IRM 假设）。
 

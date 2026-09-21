@@ -16,7 +16,7 @@ I submitted this under Theme 1 because the problem is one of understanding. A st
 
 Things the tool makes visible that most "just add Redis" conversations miss:
 
-- **A miss is slower than having no cache.** A read that misses pays for Redis and then for the database. The honest comparison is therefore *database only* versus *Redis + database*, and on average the cache only pays off while the hit rate exceeds Redis latency ÷ database latency. Below that it is a net slowdown at every percentile (try the "Uniform access" preset).
+- **A miss is slower than having no cache.** A read that misses pays for Redis and then for the database. The honest comparison is therefore *database only* versus *Redis + database*, and on average the cache only pays off while the hit rate exceeds Redis latency ÷ database latency. Below that it is a net slowdown: in the "Uniform access" preset the *latency saved* chart is red from the first percentile to the last.
 - **Value for money is one number.** *Cost per ms saved* is the monthly bill divided by the milliseconds taken off the average read, shown next to the same ratio for the next doubling of memory. When the second is a hundred times the first, you are past the knee.
 - **Cache size is a TTL in disguise.** An LRU cache of a given size behaves like a TTL cache whose timer is the *eviction age* `Tc` (Che's approximation). Memory and TTL are therefore in the same unit — seconds — and only the smaller one matters for a cold key. A TTL above `Tc` changes little; a TTL far below `Tc` leaves memory you pay for empty.
 - **Without a TTL, hit rate does not depend on traffic volume** — only on skew and on the cached fraction. Traffic matters only through the TTL and through writes.
@@ -24,6 +24,16 @@ Things the tool makes visible that most "just add Redis" conversations miss:
 - **Staleness follows the hot keys, not the write ratio.** Stale reads scale with *per-key* write rate × TTL. If hot keys are also written most, 1 write per 100 reads with a one hour TTL leaves most reads stale.
 - **How stale, not only how often.** *Stale reads* is the share of reads that disagree with the database; *Stale age* is how long ago the database value changed when that happens. The worst case is the TTL, and with no TTL a hot key is never corrected at all. The simulator measures the same quantity; the model is within 2.5% of it.
 - **A cache that carries load is an availability dependency.** If the database cannot absorb full traffic, a Redis outage is a full outage.
+
+## What is on the page
+
+- **Your system** (given) and **Your Redis choices** (decide): two separate input cards. 🎲 randomises only the system, which turns the page into an exercise: here is a system, now configure Redis. Five presets each demonstrate one way a cache goes right or wrong.
+- **Verdict** and **tiles**: hit rate, stale reads and stale age, P50/P99 against the database alone, cost per ms saved, database load (with cache, without, and with Redis down), memory actually used, eviction age.
+- **Read latency: database only vs Redis + database** (the central figure): the three paths a read can take with their shares, the break-even hit rate, latency by percentile for both setups, the *latency saved by Redis* at each percentile (green where it helped, red where a miss made things slower), and a table with the change per percentile.
+- **Miss rate vs memory** (with monthly cost and the ideal-cache bound), **miss and stale reads vs TTL** (with the eviction age marked), **which keys are cached** (hit probability by popularity rank).
+- **Can you trust these numbers?** The referee panel: an in-browser simulation checks the formulas.
+- **Professor Amber** grades the configuration with twelve rules, each quoting the numbers that triggered it. **Six lessons** explain the ideas, four of them with a button that loads the matching preset.
+- **Exam** (`exam.html`): five questions drawn from a bank of fifty, marked with explanations, invigilated by Proctor Hoot. Numeric claims in the bank are unit-tested against the model.
 
 ## The model
 
@@ -46,14 +56,15 @@ Popularity is evaluated on 256 exact ranks plus geometric bins, so 10⁹ keys co
 
 ### How much to trust it
 
-`src/engine/sim.ts` is an independent discrete-event simulation of a real LRU list with insertion-time TTLs, Poisson traffic and both write policies. `test/cross.test.ts` compares it with the model over skew × cached fraction × write policy × TTL (none, equal to `Tc`, a tenth of `Tc`):
+`src/engine/sim.ts` is an independent discrete-event simulation of a real LRU list with insertion-time TTLs, Poisson traffic and both write policies. It shares no formula with the model. `test/cross.test.ts` compares the two:
 
 | | max \|model − simulation\| |
 |---|---|
-| 48-point grid (miss rate and stale rate) | **0.25 pp** |
-| off-grid probes (tiny cache, TTL = 1.5·Tc) | 0.51 pp |
+| 64-point grid: skew × cached fraction × write policy × TTL (none, 1.5·`Tc`, `Tc`, `Tc`/10), miss rate and stale rate | **0.35 pp** |
+| The page's own path: defaults, all presets, slow-to-warm edge cases and 16 seeded random systems, scaled the way the browser scales them | 1.09 pp |
+| Stale age on the grid (a duration, so compared relatively) | within 2.5% |
 
-On the page, the "Can you trust these numbers?" panel runs the same simulator in a Web Worker for the current settings and eight variations, and plots prediction against measurement.
+On the page, the **"Can you trust these numbers?"** panel runs the same simulator in a Web Worker for the current settings and eight variations (four memory sizes, four TTLs) and plots prediction against measurement; points on the diagonal agree. Changing any setting discards the points, since they describe the settings they ran with.
 
 ### Assumptions and non-goals
 
@@ -91,9 +102,11 @@ On the page, the "Can you trust these numbers?" panel runs the same simulator in
 
 ```
 src/contract/   types.ts inputs.ts                      frozen protocol: parameters, outputs, slider specs
-src/engine/     model.ts sim.ts worker.ts advisor.ts presets.ts   math, simulator, verdict rules (no DOM)
-src/ui/         main.ts style.css                       page
-test/           model limits, simulator self-checks, model-vs-simulation grid, preset verdicts
+src/engine/     model.ts sim.ts worker.ts advisor.ts presets.ts quiz.ts   math, simulator, advisor rules, presets, question bank (no DOM)
+src/ui/         main.ts exam.ts style.css exam.css      the explorer and the exam page
+cat_teacher/    generate.py + SVGs                      Professor Amber's faces and Proctor Hoot, generated by one Python script
+test/           88 tests: model limits, simulator self-checks, model-vs-simulation grid and Validate path, presets, advisor rules, question bank
+PLAN.md         the plan the agents worked from, with the shared TODO table; VIDEO.md is the video outline
 ```
 
 `npm install && npm test && npm run dev` (Node ≥ 20). Pushing to `main` tests, builds and deploys to GitHub Pages.
