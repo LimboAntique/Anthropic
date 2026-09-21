@@ -32,12 +32,12 @@ interface Solved {
   used: number // expected number of cached keys
 }
 
-// Finds the eviction age Tc at which expected occupancy equals capacity, then aggregates hit and stale rates
-function solve(p: Params, cap: number, b = bins(p.sys.keys, p.sys.alpha)): Solved {
+// Hit rate, stale rate and occupancy summed over all bins, as a function of the eviction age
+function aggregate(p: Params, b: { n: number; p: number }[]) {
   const { rps, wps } = p.sys
   const T = p.redis.ttlSec
   const inval = p.redis.writePolicy === 'invalidate'
-  const at = (tc: number): Solved => {
+  return (tc: number): Solved => {
     let hit = 0, stale = 0, used = 0
     for (const { n, p: pi } of b) {
       const lam = rps * pi, w = wps * pi
@@ -49,10 +49,15 @@ function solve(p: Params, cap: number, b = bins(p.sys.keys, p.sys.alpha)): Solve
     }
     return { tc, hit, stale, used }
   }
+}
+
+// Finds the eviction age Tc at which expected occupancy equals capacity; 36 halvings pin ln Tc to 1e-9, plots get by with fewer
+function solve(p: Params, cap: number, b = bins(p.sys.keys, p.sys.alpha), halvings = 36): Solved {
+  const at = aggregate(p, b)
   const free = at(Infinity)
   if (free.used <= cap) return free
   let lo = -30, hi = 30 // bisection on ln Tc
-  for (let i = 0; i < 36; i++) {
+  for (let i = 0; i < halvings; i++) {
     const mid = (lo + hi) / 2
     at(Math.exp(mid)).used > cap ? (hi = mid) : (lo = mid)
   }
@@ -139,13 +144,26 @@ export function curves(p: Params): Curves {
   }
   const miss = 1 - solve(p, capacity(p), b).hit
   const c = cdfs(p, miss)
+
+  // Miss vs memory is swept by eviction age instead of memory: each Tc yields the memory it fills and its miss rate
+  // in one pass with no root finding, so the curve can be dense. Past the memory the TTL lets the cache reach it is flat.
+  const bytes = p.sys.objBytes + OVERHEAD
+  const at = aggregate(p, b)
+  const point = (s: Solved) => ({ memGB: (s.used * bytes) / 1e9, miss: 1 - s.hit })
+  const lo = solve(p, capacity(p, 0.01), b), hi = solve(p, capacity(p, 1024), b), free = at(Infinity)
+  const tcMax = p.redis.ttlSec < Infinity ? p.redis.ttlSec : 1000 / (p.sys.rps * b[b.length - 1].p)
+  const swept = lo.tc < Infinity ? logspace(lo.tc, tcMax, 120).map((tc) => point(at(tc))) : []
+  // Flat stretch: from where the cache stops filling, through the corner where the dataset fits, on a grid dense enough for the ideal line
+  const full = point(free).memGB
+  const flat = [full, (p.sys.keys * bytes) / 1e9, ...logspace(0.01, 1024, 240).filter((m) => m > full)].map((memGB) => ({ memGB, miss: 1 - free.hit }))
+  const mem = [{ memGB: 0.01, miss: 1 - lo.hit }, ...[...swept, ...flat].filter((d) => d.memGB > 0.01 && d.memGB < 1024), { memGB: 1024, miss: 1 - hi.hit }]
   return {
-    missVsMem: logspace(0.01, 1024, 40).map((memGB) => ({ memGB, miss: 1 - solve(p, capacity(p, memGB), b).hit, ideal: 1 - ideal(capacity(p, memGB)) })),
-    vsTtl: logspace(1, 2592000, 40).map((ttlSec) => {
-      const s = solve({ ...p, redis: { ...p.redis, ttlSec } }, capacity(p), b)
+    missVsMem: mem.sort((x, y) => x.memGB - y.memGB).map((d) => ({ ...d, ideal: 1 - ideal(capacity(p, d.memGB)) })),
+    vsTtl: logspace(1, 2592000, 80).map((ttlSec) => {
+      const s = solve({ ...p, redis: { ...p.redis, ttlSec } }, capacity(p), b, 26)
       return { ttlSec, miss: 1 - s.hit, stale: s.stale }
     }),
-    latencyCdf: logspace(0.05, 5000, 80).map((ms) => ({ ms, withCache: c.withCache(ms), baseline: c.baseline(ms) })),
+    latencyCdf: logspace(0.05, 5000, 240).map((ms) => ({ ms, withCache: c.withCache(ms), baseline: c.baseline(ms) })),
   }
 }
 
