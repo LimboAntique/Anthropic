@@ -163,7 +163,7 @@ export function curves(p: Params): Curves {
   // A database curve shifted by the Redis lookup or by the timeout rises within a few ms of its shift, far narrower than
   // a log-spaced step out there, so each shift gets its own fine grid on top of the global one
   const afterShift = [p.redis.p50Ms, p.redis.timeoutMs].flatMap((shift) => logspace(p.sys.dbP50Ms / 50, p.sys.dbP99Ms * 2, 60).map((d) => shift + d))
-  const cdfGrid = [...logspace(0.05, 5000, 240), ...afterShift].sort((x, y) => x - y)
+  const cdfGrid = [...logspace(0.05, 200, 240), ...afterShift].filter((ms) => ms <= 200).sort((x, y) => x - y)
 
   // Miss vs memory is swept by eviction age instead of memory: each Tc yields the memory it fills and its miss rate
   // in one pass with no root finding, so the curve can be dense. Past the memory the TTL lets the cache reach it is flat.

@@ -250,7 +250,7 @@ function render() {
     `Misses waste a Redis round trip, so the cache only pays off above a hit rate of Redis ÷ database latency = ${pct(mean.breakEvenHit)}; you are at <b class="${loss ? 'worse' : 'better'}">${pct(hit)}</b>.`
 
   draw('chart-cdf', {
-    x: { type: 'log', label: 'Latency (ms)', tickFormat: si, domain: [redis.p50Ms / 4, 200] }, // fixed 200 ms ceiling: slower reads are off the chart, and the outage step keeps its context
+    x: { type: 'log', label: 'Latency (ms)', tickFormat: si, domain: [redis.p50Ms / 4, 150] }, // fixed 150 ms ceiling; the curve is sampled to 200 ms so the line runs off the edge instead of stopping short
     y: { label: 'Reads at least this fast (%)', percent: true, domain: [0, 100] },
     marks: [
       Plot.ruleY([hit * redis.availability], { strokeDasharray: '2 3' }),
