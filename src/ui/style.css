@@ -8,7 +8,7 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; padding: 16px; font: 14px/1.45 system-ui, -apple-system, 'Segoe UI', sans-serif; background: var(--paper); color: var(--ink); font-variant-numeric: tabular-nums; }
+body { margin: 0 auto; max-width: 1440px; padding: 16px; font: 14px/1.45 system-ui, -apple-system, 'Segoe UI', sans-serif; background: var(--paper); color: var(--ink); font-variant-numeric: tabular-nums; }
 h1, h2, #verdict, figcaption b { font-family: Georgia, 'Iowan Old Style', serif; }
 h1 { margin: 0; font-size: 40px; line-height: 1.15; }
 h2 { margin: 0 0 8px; font-size: 16px; }
@@ -57,7 +57,7 @@ label input, label select { grid-column: 1 / -1; width: 100%; margin: 2px 0 0; }
 #tiles strong { font-size: 22px; }
 #tiles .bad strong { color: var(--bad); }
 
-#charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
+#charts { display: grid; gap: 16px; } /* one figure per row at every width, so charts keep a readable aspect and a fixed reading order */
 figure > div { margin-top: 8px; }
 /* Chart title on the left, legend pushed to the right edge, also when it wraps */
 figcaption { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 0 10px; }
