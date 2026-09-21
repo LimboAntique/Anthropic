@@ -14,6 +14,8 @@ const MUTED = 'var(--muted)'
 // Labelled through the axis text channel because log scales hide tick labels that are not powers of ten
 const TTL_TICKS = [1, 60, 3600, 86400, 2592000]
 
+const FACES = import.meta.glob('../../cat_teacher/*.svg', { eager: true, query: '?url', import: 'default' }) as Record<string, string>
+
 const $ = (id: string) => document.getElementById(id)!
 let P: Params = structuredClone(DEFAULTS)
 const group = (s: InputSpec) => (s.group === 'system' ? P.sys : P.redis) as unknown as Record<string, number>
@@ -118,6 +120,11 @@ function render() {
   const ttl = redis.ttlSec === Infinity ? chosen('no TTL') : `a ${chosen(dur(redis.ttlSec))} TTL`
   $('verdict').innerHTML = `<b>${head.title}</b> with ${chosen(bytes(redis.memGB * 1e9))} and ${ttl}<p>${head.detail.replace(`${redis.memGB} GB`, chosen)}</p>`
   $('advice').innerHTML = advice.map((a) => `<li class="${a.level}"><b>${a.title}</b><br>${a.detail}</li>`).join('') || '<li>No remarks.</li>'
+
+  // The mascot grades the configuration: surprised by an overloadable database, otherwise by how many remarks are not praise
+  const flaws = advice.filter((x) => x.level !== 'good').length
+  const face = Math.max(o.dbLoad.withCache, o.dbLoad.redisDown) >= 1 ? 'face_surprised' : head.level === 'bad' ? 'face_stern' : flaws > 1 ? 'face_thinking' : flaws ? 'face_happy' : 'full_marks'
+  ;($('amber') as HTMLImageElement).src = FACES[`../../cat_teacher/${face}.svg`]
 
   const load = (u: number) => pct(u) + (u >= 1 ? ' ⚠ overload' : '')
   const tiles = [
