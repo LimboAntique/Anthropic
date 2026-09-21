@@ -4,3 +4,7 @@ dist
 
 # The assignment brief is private to the sender and stays out of the repository
 Platform_SWE_take-home_assignment.pdf
+
+# Submission drafts kept locally: the video script and the short design note are sent with the application, not published
+VIDEO.md
+WRITEUP.md
