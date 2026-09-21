@@ -80,6 +80,17 @@ function cdfs(p: Params, miss: number) {
   return { baseline, withCache }
 }
 
+// Mean of the lognormal fitted to a P50 and a P99
+const lognMean = (p50: number, p99: number) => p50 * Math.exp((Math.log(Math.max(p99 / p50, 1.0001)) / 2.3263) ** 2 / 2)
+
+// Mean read latency per path. A miss costs Redis plus the database, so the cache only pays off on average
+// while hit rate > redis / db: below that the round trips wasted on misses outweigh the database reads saved.
+export function meanLatency(p: Params, miss: number) {
+  const redis = lognMean(p.redis.p50Ms, p.redis.p99Ms), db = lognMean(p.sys.dbP50Ms, p.sys.dbP99Ms)
+  const up = p.redis.availability
+  return { redis, db, withCache: up * (redis + miss * db) + (1 - up) * (p.redis.timeoutMs + db), breakEvenHit: Math.min(1, redis / db) }
+}
+
 function percentiles(cdf: (ms: number) => number): Percentiles {
   const q = (target: number) => {
     let lo = Math.log(1e-3), hi = Math.log(1e6)

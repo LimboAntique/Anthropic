@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { DEFAULTS } from '../src/contract/inputs'
 import type { Params } from '../src/contract/types'
-import { bins, curves, evaluate, life } from '../src/engine/model'
+import { bins, curves, evaluate, life, meanLatency } from '../src/engine/model'
 
 const INF = Infinity
 const mk = (sys: Partial<Params['sys']> = {}, redis: Partial<Params['redis']> = {}): Params => ({ sys: { ...DEFAULTS.sys, ...sys }, redis: { ...DEFAULTS.redis, ...redis } })
@@ -91,4 +91,13 @@ test('outputs are finite across extreme inputs and fast enough for slider draggi
   // Bounds are ten times the laptop figures: shared CI runners are slow, and only an algorithmic blow-up should fail
   expect(ev).toBeLessThan(50)
   expect(cu).toBeLessThan(600)
+})
+
+test('on average the cache pays off exactly when the hit rate exceeds redis latency / db latency', () => {
+  const p = mk({}, { availability: 1 })
+  const m = meanLatency(p, 0)
+  expect(m.withCache).toBeCloseTo(m.redis, 12)
+  expect(meanLatency(p, 1 - m.breakEvenHit).withCache).toBeCloseTo(m.db, 9)
+  expect(meanLatency(p, 1).withCache).toBeCloseTo(m.db + m.redis, 9)
+  expect(meanLatency(mk({}, { availability: 0 }), 0).withCache).toBeCloseTo(p.redis.timeoutMs + m.db, 9)
 })

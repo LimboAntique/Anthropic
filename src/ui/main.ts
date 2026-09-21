@@ -2,7 +2,7 @@ import * as Plot from '@observablehq/plot'
 import { DEFAULTS, INPUTS, randomSystem } from '../contract/inputs'
 import type { InputSpec, Params, SimResult } from '../contract/types'
 import { advise } from '../engine/advisor'
-import { curves, evaluate } from '../engine/model'
+import { curves, evaluate, meanLatency } from '../engine/model'
 import { PRESETS } from '../engine/presets'
 import { scaleForSim } from '../engine/sim'
 import './style.css'
@@ -56,13 +56,13 @@ const HELP: Record<string, string> = {
   'Hit rate': 'Share of reads answered by Redis without touching the database. The rest are misses, which pay for Redis and the database.',
   'Stale reads': 'Share of reads that return an old value, because the key was updated in the database after it was cached.',
   'P50 latency': 'The typical read: half of all reads finish faster than this. Compare it with the database-only figure underneath.',
-  'P99 latency': 'The slow tail: 1 read in 100 is slower than this. It only improves once misses fall below about 1%, because until then the slowest 1% are all database reads.',
+  'P99 latency': 'The slow tail: 1 read in 100 is slower than this. While more than 1% of reads miss, the slowest 1% are all misses, and a miss costs Redis plus a database read.',
   'DB load': 'Traffic that reaches the database, as a share of its capacity. 100% or more is overload. Redis down is what the database sees when the cache fails and every read falls through.',
   'Memory used': 'Memory actually occupied in steady state. If it is far below what you bought, the TTL empties the cache before it fills and you pay for idle RAM.',
   'Eviction age': 'How long an untouched key survives before memory pressure pushes it out. It works like a hidden TTL: whichever is shorter, this or your TTL, decides what stays cached.',
   chartMem: 'How the miss rate would change if you bought more or less memory with everything else fixed. The dot is your current choice and the top axis is the monthly cost. The dashed line is a perfect cache that always holds the hottest keys. Where the curve is flat, more memory buys nothing.',
   chartTtl: 'How misses (solid) and stale reads (dotted) change with the TTL. The vertical lines mark your TTL and the eviction age. Right of the eviction age a longer TTL no longer removes misses, it only adds stale reads.',
-  chartCdf: 'For each latency on the x axis, the share of reads that finish at least that fast. A curve further left is faster. The table reads off four points: P50 is the typical read, P99 the slowest 1%.',
+  chartCdf: 'Grey is every read going straight to the database. Orange is the same traffic with Redis in front: a hit is answered by Redis alone, but a miss pays for Redis and then the database, so it is slower than having no cache. Read across at any height: where orange is left of grey that share of reads got faster, where it is right of grey they got slower. The dashed line is the hit rate, where the orange curve switches from hits to misses. The table reads off four heights.',
   chartParity: 'A check that the formulas can be trusted. The button replays a scaled-down copy of your workload through a real LRU + TTL cache, for your settings and eight variations. Each point compares the predicted value (x) with the measured one (y); points on the diagonal agree.',
 }
 const info = (key: string) => `<button type="button" class="info" aria-label="${HELP[key]}" data-tip="${HELP[key]}">!</button>`
@@ -148,7 +148,7 @@ function draw(id: string, options: Plot.PlotOptions) {
 function render() {
   const o = evaluate(P)
   const c = curves(P)
-  const { redis } = P
+  const { sys, redis } = P
   const advice = advise(P, o)
   const head = advice[0] ?? { level: 'warn', title: `Redis serves ${pct(1 - o.missRate)} of reads`, detail: `P99 goes from ${ms(o.baseline.p99)} to ${ms(o.latency.p99)}.` }
   $('verdict').className = head.level
@@ -203,16 +203,31 @@ function render() {
     ],
   })
 
+  // Three paths a read can take; a miss pays Redis and then the database, which is what makes a poor hit rate a net loss
+  const hit = 1 - o.missRate
+  const mean = meanLatency(P, o.missRate)
+  const loss = hit < mean.breakEvenHit
+  $('paths').innerHTML =
+    `<b>Hit</b> ${pct(hit * redis.availability)}: Redis only, ${ms(redis.p50Ms)}. ` +
+    `<b class="worse">Miss</b> ${pct(o.missRate * redis.availability)}: Redis, then the database, ${ms(redis.p50Ms)} + ${ms(sys.dbP50Ms)}, slower than having no cache. ` +
+    (redis.availability < 1 ? `<b class="worse">Redis down</b> ${pct(1 - redis.availability)}: timeout, then the database, ${ms(redis.timeoutMs)} + ${ms(sys.dbP50Ms)}. ` : '') +
+    `<br>Average read: ${ms(mean.db)} database only, <b class="${loss ? 'worse' : 'better'}">${ms(mean.withCache)}</b> with Redis. ` +
+    `Misses waste a Redis round trip, so the cache only pays off above a hit rate of Redis ÷ database latency = ${pct(mean.breakEvenHit)}; you are at <b class="${loss ? 'worse' : 'better'}">${pct(hit)}</b>.`
+
   draw('chart-cdf', {
     x: { type: 'log', label: 'Latency (ms)', tickFormat: si },
-    y: { label: 'Reads faster than this (%)', percent: true, domain: [0, 100] },
+    y: { label: 'Reads at least this fast (%)', percent: true, domain: [0, 100] },
     marks: [
+      Plot.ruleY([hit * redis.availability], { strokeDasharray: '2 3' }),
+      Plot.text([{ y: hit * redis.availability }], { y: 'y', text: () => 'hit rate: below this line Redis alone, above it Redis + database', frameAnchor: 'right', dy: -7, stroke: 'var(--paper)', fill: 'var(--ink)' }),
       Plot.lineY(c.latencyCdf, { x: 'ms', y: 'baseline', stroke: MUTED, strokeWidth: 2 }),
       Plot.lineY(c.latencyCdf, { x: 'ms', y: 'withCache', stroke: CHOICE, strokeWidth: 2, tip: true }),
     ],
   })
-  const row = (name: string, q: typeof o.latency) => `<tr><th>${name}</th><td>${ms(q.p50)}</td><td>${ms(q.p75)}</td><td>${ms(q.p90)}</td><td>${ms(q.p99)}</td></tr>`
-  $('latency').innerHTML = `<tr><th></th><th>P50</th><th>P75</th><th>P90</th><th>P99</th></tr>${row('With Redis', o.latency)}${row('Database only', o.baseline)}`
+  const Q = ['p50', 'p75', 'p90', 'p99'] as const
+  const row = (name: string, q: typeof o.latency) => `<tr><th>${name}</th>${Q.map((k) => `<td>${ms(q[k])}</td>`).join('')}</tr>`
+  const change = Q.map((k) => o.latency[k] / o.baseline[k] - 1).map((d) => `<td class="${d > 0 ? 'worse' : 'better'}">${d > 0 ? '+' : ''}${(d * 100).toFixed(0)}%</td>`)
+  $('latency').innerHTML = `<tr><th></th>${Q.map((k) => `<th>${k.toUpperCase()}</th>`).join('')}</tr>${row('Database only', o.baseline)}${row('Redis + database', o.latency)}<tr><th>Change</th>${change.join('')}</tr>`
 
   drawParity()
 }
