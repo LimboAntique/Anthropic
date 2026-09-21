@@ -1,4 +1,4 @@
-"""Generate Professor Amber, a ginger cat teacher mascot: a character sheet plus an illustration series, as SVG."""
+"""Generate Professor Amber, a ginger cat teacher mascot, as SVG: one face per verdict level plus a full-marks card."""
 from math import cos, pi, sin
 from pathlib import Path
 
@@ -33,19 +33,6 @@ def limb(x1, y1, x2, y2):
     return thick(f"M{x1},{y1}L{x2},{y2}", 15, NAVY) + f'<circle class="o" cx="{x2}" cy="{y2}" r="8.5" fill="{CREAM}"/>'
 
 
-def spark(x, y, r):
-    return f'<path class="o t" fill="{GOLD}" transform="translate({x},{y})" d="M0,{-r}Q0,0 {r},0Q0,0 0,{r}Q0,0 {-r},0Q0,0 0,{-r}Z"/>'
-
-
-def star5(x, y, r):
-    pts = " ".join(f"{x + k * sin(i * pi / 5):.1f},{y - k * cos(i * pi / 5):.1f}" for i in range(10) for k in [r if i % 2 == 0 else r * 0.45])
-    return f'<polygon class="o" fill="{GOLD}" points="{pts}"/>'
-
-
-def fish(x, y, s=1, color="#fff"):
-    return at(x, y, s, f'<g class="n" stroke="{color}" stroke-width="2.5"><ellipse rx="17" ry="9"/><path d="M15,0L28,-8L28,8Z"/><circle cx="-8" cy="-2" r="1"/></g>')
-
-
 def almond(pupil_y, pupil_ry):
     return (
         f'<path class="o t" fill="{IRIS}" d="M-10,1C-6,-9 5,-10 10,-2C6,8-5,9-10,1Z"/><ellipse cy="{pupil_y}" rx="2.8" ry="{pupil_ry}" fill="{O}"/>'
@@ -58,10 +45,8 @@ EYES = {
     "open": almond(-0.5, 5.2),
     "look": almond(-2.5, 4),
     "happy": '<path class="o n b" d="M-9,2Q0,-8 9,2"/>',
-    "sleepy": '<path class="o n b" d="M-9,-1Q0,6 9,-1"/>',
     "wide": f'<circle class="o t" r="9" fill="{IRIS}"/><circle r="3" fill="{O}"/><circle cx="-3" cy="-3.5" r="1.6" fill="#fff"/>',
     "half": f'<path class="o t" fill="{IRIS}" d="M-10,0L10,-1C6,8-5,9-10,0Z"/><ellipse cy="3" rx="2.6" ry="3.5" fill="{O}"/><path class="o n b" d="M-11,0L11,-1"/>',
-    "glint": '<circle r="16.5" fill="#F4F8FA"/><path class="n" stroke="#B9D3E0" stroke-width="4" d="M-8,7L7,-8M1,10L10,1"/>',
 }
 W = "M-12,23Q-11,29-6,29Q0,29 0,21Q0,29 6,29Q11,29 12,23"
 MOUTHS = {
@@ -70,7 +55,6 @@ MOUTHS = {
     "o": '<ellipse class="o t" cy="29" rx="3.5" ry="4.5" fill="#8C3A3A"/>',
     "flat": '<path class="o n t" d="M-7,28L7,28"/>',
     "frown": '<path class="o n t" d="M-8,30Q0,24 8,30"/>',
-    "smirk": '<path class="o n t" d="M-9,25Q3,32 11,23"/>',
 }
 
 
@@ -116,54 +100,6 @@ def card(bg, caption, body):
     return f'<rect width="400" height="400" rx="24" fill="{bg}"/>' + body + t(200, 374, 24, caption, style="font-style:italic")
 
 
-def sheet():
-    info = [("Tenure", "Nine lives and counting"), ("Look", "Round specs, navy blazer, wine tie"), ("Temper", "Patient, precise, naps at noon"),
-            ("Loves", "Dried fish and tidy handwriting"), ("Motto", "&#8220;Curiosity made the cat.&#8221;")]
-    lines = "".join(t(300, 150 + i * 28, 14.5, f'<tspan style="fill:{DARK};font-weight:bold">{k}</tspan>  {v}', anchor="start") for i, (k, v) in enumerate(info))
-    palette = "".join(f'<circle class="o t" cx="{316 + i * 43}" cy="316" r="15" fill="{c}"/>' + t(316 + i * 43, 350, 8, c) for i, c in enumerate([FUR, DARK, CREAM, NAVY, WINE, GOLD, O]))
-    return (
-        '<rect width="610" height="400" rx="24" fill="#F3EDE2"/>' + at(158, 120, 1, cat())
-        + t(300, 84, 30, "Professor Amber", anchor="start", style="font-weight:bold")
-        + t(300, 110, 15, "Homeroom teacher · Whisker Academy", DARK, "start", "font-style:italic") + lines + palette
-    )
-
-
-def expressions():
-    faces = [
-        ("Happy", "happy", "smile", ""),
-        ("Stern", "half", "frown", mirror('<path class="o n b" d="M-44,-34L-17,-25"/>')),
-        ("Surprised", "wide", "o", t(82, -40, 34, "!!", WINE, style="font-weight:bold")),
-        ("Thinking", "look", "flat", t(82, -40, 34, "?", NAVY, style="font-weight:bold")),
-        ("Sleepy", "sleepy", "w", t(88, -46, 20, "z z z", "#7A6A99", style="font-style:italic")),
-        ("Smug", "glint", "smirk", spark(45, -22, 10)),
-    ]
-    cells = "".join(
-        at(110 + i % 3 * 195, 140 + i // 3 * 165, 0.9, head(e, m, x)) + t(110 + i % 3 * 195, 210 + i // 3 * 165, 17, name, style="font-style:italic")
-        for i, (name, e, m, x) in enumerate(faces)
-    )
-    return '<rect width="610" height="400" rx="24" fill="#E4EAE4"/>' + t(305, 40, 20, "Professor Amber · Expressions", style="font-weight:bold") + cells
-
-
-def class_begins():
-    board = (
-        f'<rect x="170" y="40" width="206" height="140" rx="4" fill="#2F5548" stroke="{WOOD}" stroke-width="8"/>'
-        + t(273, 76, 15, "Lesson 1 · Fish Arithmetic", "#CFE0D8", style="font-style:italic")
-        + fish(206, 122) + t(250, 131, 28, "+", "#fff") + fish(284, 122) + t(328, 131, 28, "=", "#fff") + t(354, 133, 32, "?", "#E8C66A")
-    )
-    pointer = f'<path class="n" stroke="{WOOD}" stroke-width="4" d="M76,40L225,-28"/><circle cx="225" cy="-28" r="3.5" fill="{WINE}"/>'
-    return card("#F3EDE2", "Class is in session.", board + at(115, 175, 0.82, cat(arms=limb(-40, 64, -52, 122) + pointer + limb(38, 62, 76, 40))))
-
-
-def reading():
-    book = (
-        f'<path class="o" fill="{WINE}" d="M0,112L-44,103L-44,141L0,150L44,141L44,103Z"/>'
-        '<path class="o t" fill="#fff" d="M0,112L-44,103L-44,98L0,107L44,98L44,103Z"/><path class="o n t" d="M0,112L0,150"/>'
-        + fish(21, 126, 0.55, GOLD) + limb(-40, 66, -48, 126) + limb(40, 66, 48, 126)
-    )
-    notes = "".join(t(x, y, 34, s, c, style="font-style:italic") for x, y, s, c in [(64, 110, "A", NAVY), (338, 90, "&#931;", WINE), (344, 214, "&#960;", GREEN), (60, 226, "&#8730;", "#7A6A99")])
-    return card("#E6E9F0", "Read widely.", notes + at(206, 122, 1, cat("happy", arms=book)))
-
-
 def full_marks():
     paper = at(-94, 18, 1, (
         '<g transform="rotate(-8)"><rect class="o" x="-32" y="-42" width="64" height="84" rx="3" fill="#fff"/>'
@@ -180,43 +116,21 @@ def full_marks():
     return card("#E4EAE4", "Full marks!", at(212, 118, 0.9, cat("happy", "smile", "")) + desk + at(212, 118, 0.9, arms))
 
 
-def well_done():
-    sparks = spark(70, 120, 10) + spark(340, 76, 13) + spark(326, 236, 8) + spark(84, 60, 7)
-    return card("#F0E4DF", "Well done.", sparks + at(196, 122, 1, cat("happy", "smile", limb(-40, 64, -52, 122) + star5(90, 4, 24) + limb(38, 62, 82, 32))))
+# Faces share one viewBox so swapping them never shifts the layout; the right margin holds the "!!" and "?" marks
+FACES = {
+    "face_happy": head("happy", "smile"),
+    "face_thinking": head("look", "flat", t(82, -40, 34, "?", NAVY, style="font-weight:bold")),
+    "face_stern": head("half", "frown", mirror('<path class="o n b" d="M-44,-34L-17,-25"/>')),
+    "face_surprised": head("wide", "o", t(82, -40, 34, "!!", WINE, style="font-weight:bold")),
+}
 
 
-def any_questions():
-    bubble = '<path class="o" fill="#fff" d="M128.7,112.4A64,42 0 1 1 147.4,99L166,130Z"/>' + t(92, 95, 46, "?", WINE, style="font-weight:bold")
-    return card("#E6E9F0", "Any questions?", bubble + at(238, 140, 0.95, cat(mouth="smile", arms=limb(-40, 64, -52, 122) + limb(38, 62, 88, 22))))
-
-
-def class_dismissed():
-    bell = at(84, 92, 1.3, (
-        f'<g transform="rotate(-18)"><path class="o n" d="M0,-18L0,-25"/><path class="o" fill="{GOLD}" d="M-16,8Q-16,-16 0,-18Q16,-16 16,8L21,14L-21,14Z"/>'
-        f'<circle class="o t" cy="19" r="4" fill="{O}"/><path class="o n t" d="M-30,-10Q-37,1-30,12M30,-10Q37,1 30,12"/></g>'
-    ))
-    case = f'<path class="o n" d="M-64,132Q-52,112-40,132"/><rect class="o" x="-80" y="132" width="56" height="36" rx="4" fill="{WOOD}"/><rect class="o t" x="-57" y="144" width="10" height="8" rx="2" fill="{GOLD}"/>'
-    wave = '<path class="o n t" d="M102,4Q109,14 106,28M111,-2Q121,14 115,34"/>'
-    arms = case + limb(-40, 64, -52, 122) + limb(38, 62, 88, 22) + wave
-    return card("#EFE6D2", "Class dismissed.", bell + t(84, 152, 15, "ring, ring", style="font-style:italic") + at(226, 128, 0.95, cat(("happy", "open"), "smile", arms)))
-
-
-def save(name, w, h, body):
-    svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}"><style>{CSS}</style>{body}</svg>'
+def save(name, box, body):
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{box}"><style>{CSS}</style>{body}</svg>'
     (Path(__file__).parent / f"{name}.svg").write_text(svg, encoding="utf-8")
 
 
 if __name__ == "__main__":
-    sheets = {"01_character_sheet": sheet(), "02_expressions": expressions()}
-    cards = {
-        "03_class_begins": class_begins(), "04_reading": reading(), "05_full_marks": full_marks(),
-        "06_well_done": well_done(), "07_any_questions": any_questions(), "08_class_dismissed": class_dismissed(),
-    }
-    overview = '<rect width="1280" height="1280" fill="#FBF8F3"/>'
-    for i, (name, body) in enumerate(sheets.items()):
-        save(name, 610, 400, body)
-        overview += at(20 + i * 630, 20, 1, body)
-    for i, (name, body) in enumerate(cards.items()):
-        save(name, 400, 400, body)
-        overview += at(20 + i % 3 * 420, 440 + i // 3 * 420, 1, body)
-    save("00_overview", 1280, 1280, overview)
+    for name, body in FACES.items():
+        save(name, "-80 -92 190 150", body)
+    save("full_marks", "0 0 400 400", full_marks())
