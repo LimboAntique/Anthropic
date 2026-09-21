@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { DEFAULTS } from '../src/contract/inputs'
 import type { Params } from '../src/contract/types'
-import { bins, byRank, curves, evaluate, life, meanLatency } from '../src/engine/model'
+import { bins, byRank, curves, evaluate, latencyGap, life, meanLatency } from '../src/engine/model'
 
 const INF = Infinity
 const mk = (sys: Partial<Params['sys']> = {}, redis: Partial<Params['redis']> = {}): Params => ({ sys: { ...DEFAULTS.sys, ...sys }, redis: { ...DEFAULTS.redis, ...redis } })
@@ -127,4 +127,12 @@ test('stale age matches the closed form for a fixed timer and is unbounded witho
   expect(o.staleAgeSec).toBeLessThan(T)
   expect(evaluate(mk({ wps: 100 }, { ttlSec: Infinity })).staleAgeSec).toBe(Infinity)
   expect(evaluate(mk({ wps: 100 }, { writePolicy: 'invalidate' })).staleAgeSec).toBe(0)
+})
+
+test('with no hits every percentile is slower by one Redis round trip; with many hits the low percentiles are faster', () => {
+  const p = mk({}, { availability: 1 })
+  for (const g of latencyGap(p, 1)) expect(g.gap).toBeCloseTo(p.redis.p50Ms, 6)
+  const gaps = latencyGap(p, 0.2)
+  expect(gaps[49].gap).toBeLessThan(-4)
+  expect(gaps[49].withCache).toBeCloseTo(evaluate(mk({}, { availability: 1, ttlSec: Infinity })).latency.p50, 0)
 })

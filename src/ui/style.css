@@ -94,3 +94,4 @@ label, h2, figcaption, #tiles .card { position: relative; }
 #validate { background: var(--ink); color: var(--paper); font-weight: 600; padding: 6px 14px; }
 #validate:hover { background: var(--given); }
 #sim-status { font: italic 15px Georgia, 'Iowan Old Style', serif; margin-left: 8px; }
+figure .sub { margin: 8px 0 0; font-size: 12px; }

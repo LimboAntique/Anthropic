@@ -2,7 +2,7 @@ import * as Plot from '@observablehq/plot'
 import { DEFAULTS, INPUTS, randomSystem } from '../contract/inputs'
 import type { InputSpec, Params, SimResult } from '../contract/types'
 import { advise } from '../engine/advisor'
-import { byRank, curves, evaluate, meanLatency } from '../engine/model'
+import { byRank, curves, evaluate, latencyGap, meanLatency } from '../engine/model'
 import { PRESETS } from '../engine/presets'
 import { scaleForSim } from '../engine/sim'
 import './style.css'
@@ -256,11 +256,25 @@ function render() {
     y: { label: 'Latency (ms)', domain: [0, Math.min(150, 1.15 * Math.max(o.latency.p99, o.baseline.p99))] }, // linear, ending just above the slower P99 (150 ms at most); the last percent runs off the top
     marks: [
       Plot.ruleX([split], { strokeDasharray: '2 3' }),
-      Plot.text([{ x: split }], { x: 'x', text: () => 'hit rate: left of this line Redis alone, right of it Redis + database', frameAnchor: 'top', dy: -12, textAnchor: split > 0.5 ? 'end' : 'start', dx: split > 0.5 ? -4 : 4, stroke: 'var(--paper)', fill: 'var(--ink)' }),
+      Plot.text([{ x: split }], { x: 'x', text: () => 'hit rate: left of this line Redis alone, right of it Redis + database', frameAnchor: 'top', dy: 10, textAnchor: split > 0.5 ? 'end' : 'start', dx: split > 0.5 ? -4 : 4, stroke: 'var(--paper)', fill: 'var(--ink)' }),
       Plot.line(c.latencyCdf, { x: 'baseline', y: 'ms', stroke: MUTED, strokeWidth: 2, clip: true }),
       Plot.line(c.latencyCdf, { x: 'withCache', y: 'ms', stroke: CHOICE, strokeWidth: 2, clip: true }),
     ],
   })
+  // The same comparison as a difference, so a penalty of one Redis round trip is visible next to a 50 ms tail
+  const gaps = latencyGap(P, o.missRate)
+  draw('chart-gap', {
+    height: 150,
+    x: { label: 'Percentile of reads (%)', percent: true, domain: [0, 100], ticks: [0, 25, 50, 75, 90, 99] },
+    y: { label: 'Latency change (ms)', tickFormat: (d: number) => (d > 0 ? '+' : '') + si(d) },
+    marks: [
+      Plot.areaY(gaps, { x: 'q', y: (d) => Math.min(0, d.gap), fill: 'var(--good)', fillOpacity: 0.35 }),
+      Plot.areaY(gaps, { x: 'q', y: (d) => Math.max(0, d.gap), fill: 'var(--bad)', fillOpacity: 0.45 }),
+      Plot.lineY(gaps, { x: 'q', y: 'gap', stroke: 'var(--ink)', strokeWidth: 1.5, tip: true }),
+      Plot.ruleY([0]),
+    ],
+  })
+
   const Q = ['p50', 'p75', 'p90', 'p99'] as const
   const row = (name: string, q: typeof o.latency) => `<tr><th>${name}</th>${Q.map((k) => `<td>${ms(q[k])}</td>`).join('')}</tr>`
   const change = Q.map((k) => o.latency[k] / o.baseline[k] - 1).map((d) => `<td class="${d > 0 ? 'worse' : 'better'}">${d > 0 ? '+' : ''}${(d * 100).toFixed(0)}%</td>`)

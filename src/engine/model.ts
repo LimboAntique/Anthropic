@@ -112,15 +112,26 @@ export function meanLatency(p: Params, miss: number) {
 }
 
 function percentiles(cdf: (ms: number) => number): Percentiles {
-  const q = (target: number) => {
-    let lo = Math.log(1e-3), hi = Math.log(1e6)
-    for (let i = 0; i < 50; i++) {
-      const mid = (lo + hi) / 2
-      cdf(Math.exp(mid)) < target ? (lo = mid) : (hi = mid)
-    }
-    return Math.exp(hi)
+  return { p50: quantile(cdf, 0.5), p75: quantile(cdf, 0.75), p90: quantile(cdf, 0.9), p99: quantile(cdf, 0.99) }
+}
+
+// Latency below which a share `target` of reads finish, by bisection on ln(ms)
+function quantile(cdf: (ms: number) => number, target: number): number {
+  let lo = Math.log(1e-3), hi = Math.log(1e6)
+  for (let i = 0; i < 50; i++) {
+    const mid = (lo + hi) / 2
+    cdf(Math.exp(mid)) < target ? (lo = mid) : (hi = mid)
   }
-  return { p50: q(0.5), p75: q(0.75), p90: q(0.9), p99: q(0.99) }
+  return Math.exp(hi)
+}
+
+// For each percentile from 0.5% to 99.5%: latency with the cache, without it, and the difference (positive = the cache made it slower)
+export function latencyGap(p: Params, miss: number) {
+  const c = cdfs(p, miss)
+  return Array.from({ length: 100 }, (_, i) => (i + 0.5) / 100).map((q) => {
+    const withCache = quantile(c.withCache, q), baseline = quantile(c.baseline, q)
+    return { q, withCache, baseline, gap: withCache - baseline }
+  })
 }
 
 const capacity = (p: Params, memGB = p.redis.memGB) => (memGB * 1e9) / (p.sys.objBytes + OVERHEAD)
