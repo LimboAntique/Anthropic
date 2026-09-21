@@ -253,7 +253,7 @@ function render() {
   const split = hit * redis.availability
   draw('chart-cdf', {
     x: { label: 'Percentile of reads (%)', percent: true, domain: [0, 100], ticks: [0, 25, 50, 75, 90, 99] },
-    y: { type: 'log', label: 'Latency (ms)', tickFormat: si, domain: [redis.p50Ms / 4, 150] }, // fixed 150 ms ceiling; slower reads run off the top
+    y: { label: 'Latency (ms)', domain: [0, Math.min(150, 1.15 * Math.max(o.latency.p99, o.baseline.p99))] }, // linear, ending just above the slower P99 (150 ms at most); the last percent runs off the top
     marks: [
       Plot.ruleX([split], { strokeDasharray: '2 3' }),
       Plot.text([{ x: split }], { x: 'x', text: () => 'hit rate: left of this line Redis alone, right of it Redis + database', frameAnchor: 'top', dy: -12, textAnchor: split > 0.5 ? 'end' : 'start', dx: split > 0.5 ? -4 : 4, stroke: 'var(--paper)', fill: 'var(--ink)' }),
