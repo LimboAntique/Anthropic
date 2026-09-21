@@ -1,4 +1,4 @@
-"""Generate Professor Amber, a ginger cat teacher mascot, as SVG: one face per verdict level plus a full-marks card."""
+"""Generate Professor Amber, a ginger cat teacher mascot, as SVG: one face per verdict level, a full-marks card, and the exam proctor owl."""
 from math import cos, pi, sin
 from pathlib import Path
 
@@ -125,6 +125,41 @@ FACES = {
 }
 
 
+OWL, OWL_DARK = "#8A6A4F", "#5E4632"
+OWL_EYES = {
+    "watch": f'<circle class="o" r="21" fill="#fff"/><circle r="13" fill="{GOLD}"/><circle r="7" fill="{O}"/><circle cx="-4" cy="-5" r="2.5" fill="#fff"/>',
+    "side": f'<circle class="o" r="21" fill="#fff"/><circle cx="7" r="13" fill="{GOLD}"/><circle cx="11" r="7" fill="{O}"/><circle cx="7" cy="-5" r="2.5" fill="#fff"/>',
+    "pass": '<circle class="o" r="21" fill="#fff"/><path class="o n b" d="M-11,3Q0,-10 11,3"/>',
+    "fail": f'<circle class="o" r="21" fill="#fff"/><path fill="{GOLD}" d="M-13,-1A13,13 0 0 0 13,-1Z"/><path fill="{O}" d="M-6,-1A6,7 0 0 0 6,-1Z"/><path class="o n b" d="M-21,-2L21,-2"/>',
+}
+
+
+def owl(eyes="watch", brows="M-46,-40L-10,-24"):
+    # Proctor owl, back to front: ear tufts, body, belly chevrons, wings, facial disc, eyes, brows, beak, mortarboard, stopwatch
+    eye = lambda side: f'<g transform="translate({24 * side},-8)">{OWL_EYES[eyes]}</g>'
+    return (
+        mirror(f'<path class="o" fill="{OWL_DARK}" d="M-50,-30L-58,-74L-24,-48Z"/>')
+        + f'<path class="o" fill="{OWL}" d="M0,-56C40,-56 62,-30 62,8C62,60 44,96 0,96C-44,96-62,60-62,8C-62,-30-40,-56 0,-56Z"/>'
+        + f'<path class="o t" fill="{CREAM}" d="M0,30C24,30 34,50 30,74C26,90 12,94 0,94C-12,94-26,90-30,74C-34,50-24,30 0,30Z"/>'
+        + f'<path class="n" stroke="{OWL_DARK}" stroke-width="3" d="M-14,64L-7,70L0,64L7,70L14,64M-10,78L-3,84L4,78L11,84"/>'
+        + mirror(f'<path class="o" fill="{OWL_DARK}" d="M-62,10C-76,34-72,66-52,84C-46,60-48,34-54,14Z"/>')
+        + f'<path class="o t" fill="#F3E3CC" d="M0,-40C30,-44 50,-28 50,-6C50,14 30,24 0,20C-30,24-50,14-50,-6C-50,-28-30,-44 0,-40Z"/>'
+        + eye(-1) + eye(1)
+        + mirror(f'<path class="o n b" d="{brows}"/>')
+        + f'<path class="o t" fill="{GOLD}" d="M-7,8L7,8L0,24Z"/>'
+        + f'<path class="o" fill="{NAVY}" d="M-44,-58L0,-72L44,-58L0,-46Z"/><path class="o n t" d="M30,-56L34,-38"/><circle class="o t" cx="34" cy="-35" r="4" fill="{WINE}"/>'
+        + f'<path class="o n t" d="M-30,26Q0,44 30,26"/><circle class="o" cx="0" cy="44" r="11" fill="#fff"/><path class="o n t" d="M0,44L0,37M0,44L5,46M0,33L0,30"/>'
+    )
+
+
+PROCTOR = {
+    "proctor_watching": owl("watch"),
+    "proctor_peeking": owl("side"),
+    "proctor_pass": owl("pass", "M-44,-34Q-27,-44-10,-34"),
+    "proctor_fail": owl("fail", "M-46,-44L-8,-22"),
+}
+
+
 def save(name, box, body):
     svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{box}"><style>{CSS}</style>{body}</svg>'
     (Path(__file__).parent / f"{name}.svg").write_text(svg, encoding="utf-8")
@@ -134,3 +169,5 @@ if __name__ == "__main__":
     for name, body in FACES.items():
         save(name, "-80 -92 190 150", body)
     save("full_marks", "0 0 400 400", full_marks())
+    for name, body in PROCTOR.items():
+        save(name, "-80 -82 160 184", body)

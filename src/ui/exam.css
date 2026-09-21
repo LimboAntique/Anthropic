@@ -1,0 +1,14 @@
+#exam { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 16px; align-items: start; max-width: 900px; }
+@media (max-width: 760px) { #exam { grid-template-columns: minmax(0, 1fr); } }
+#proctor { position: sticky; top: 16px; text-align: center; background: var(--given-bg); border-color: var(--given); }
+#owl { width: 150px; }
+#says { font-style: italic; font-family: Georgia, 'Iowan Old Style', serif; }
+#paper { display: grid; gap: 16px; }
+#paper fieldset { border: 1.5px solid var(--ink); border-radius: 8px; padding: 12px; margin: 0; }
+#paper legend { font: 600 15px Georgia, 'Iowan Old Style', serif; padding: 0 6px; }
+#paper label { display: block; margin-top: 8px; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
+#paper label input { width: auto; margin: 0 8px 0 0; }
+#paper label.right { background: var(--good-bg); color: var(--good); font-weight: 600; }
+#paper label.wrong { color: var(--bad); text-decoration: line-through; }
+#paper .why { margin: 10px 0 0; color: var(--muted); }
+#score { font: italic 28px Georgia, 'Iowan Old Style', serif; margin: 0; }
