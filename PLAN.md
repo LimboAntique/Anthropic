@@ -237,7 +237,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 - [x] **I3** 部署并在无痕窗口复测 Pages URL — 依赖：I2, T0.6 — 7b15b76 已部署；`/` 与 `/exam.html` 均 200；Pages 子路径下 Worker 正常（Validate 2.8s，最大偏差 0.02pp，点落在对角线）；375px 无横向滚动。首次 push 因性能断言在 CI 上超时而失败，已放宽为本机 10 倍
 - [x] **D1** README 骨架（模型、假设、参考）— 依赖：T0.4 — 660d7d7；5 处 `TODO(author)` 留给用户定稿
 - [x] **D2** README 定稿（理由、取舍、实测误差、耗时；判断性内容由用户定稿）— 依赖：B5, I3 — 用户已定稿（设计取舍、扩展方向、耗时 2.5 小时）；截图 fd4529d（`docs/explorer.webp`、`docs/exam.png`）
-- [x] **D3** 视频提纲 — 依赖：I3 — 67507ce，`VIDEO.md`；末尾 1 处 `TODO(author)`；按用户要求，`VIDEO.md` 与 `WRITEUP.md` 仅保留在本地（已加入 `.gitignore`），随申请材料单独提交，不放在公开仓库
+- [x] **D3** 视频提纲 — 依赖：I3 — 67507ce，`VIDEO.md`；末尾 1 处 `TODO(author)`；设计说明以 `WRITEUP.txt` 留在仓库；视频讲稿 `VIDEO.md` 按用户要求仅保留在本地（`.gitignore`），并已从全部 git 历史中清除
 - [x] **D4** 导出 transcripts — 依赖：全部 — `claude_code_conversation/` 共 5 份：主会话（规划、协议、模型、集成、考试页、延迟图；46 轮用户消息、262 次工具调用）+ 吉祥物、页面风格调研、轨道 B 仿真验证、轨道 C UI。提交前均已扫描：无密钥/令牌，邮箱仅 `noreply@anthropic.com`。主会话记录截至导出时刻，之后的对话需重新导出覆盖
 
 **扩展（原计划内，6/6 完成）**
