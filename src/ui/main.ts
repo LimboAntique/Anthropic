@@ -261,16 +261,17 @@ function render() {
       Plot.line(c.latencyCdf, { x: 'withCache', y: 'ms', stroke: CHOICE, strokeWidth: 2, clip: true }),
     ],
   })
-  // The same comparison as a difference, so a penalty of one Redis round trip is visible next to a 50 ms tail
-  const gaps = latencyGap(P, o.missRate)
+  // The same comparison as milliseconds saved, so up and green always means the cache helped; a miss shows as one Redis round trip lost
+  const gaps = latencyGap(P, o.missRate).map((g) => ({ ...g, saved: -g.gap }))
   draw('chart-gap', {
     height: 150,
     x: { label: 'Percentile of reads (%)', percent: true, domain: [0, 100], ticks: [0, 25, 50, 75, 90, 99] },
-    y: { label: 'Latency change (ms)', tickFormat: (d: number) => (d > 0 ? '+' : '') + si(d) },
+    y: { label: 'Latency saved by Redis (ms)', tickFormat: (d: number) => (d > 0 ? '+' : '') + si(d) },
     marks: [
-      Plot.areaY(gaps, { x: 'q', y: (d) => Math.min(0, d.gap), fill: 'var(--good)', fillOpacity: 0.35 }),
-      Plot.areaY(gaps, { x: 'q', y: (d) => Math.max(0, d.gap), fill: 'var(--bad)', fillOpacity: 0.45 }),
-      Plot.lineY(gaps, { x: 'q', y: 'gap', stroke: 'var(--ink)', strokeWidth: 1.5, tip: true }),
+      Plot.areaY(gaps, { x: 'q', y: (d) => Math.max(0, d.saved), fill: 'var(--good)', fillOpacity: 0.35 }),
+      Plot.areaY(gaps, { x: 'q', y: (d) => Math.min(0, d.saved), fill: 'var(--bad)', fillOpacity: 0.45 }),
+      Plot.lineY(gaps, { x: 'q', y: 'saved', stroke: 'var(--ink)', strokeWidth: 1.5, tip: true }),
+      Plot.ruleX([split], { strokeDasharray: '2 3' }),
       Plot.ruleY([0]),
     ],
   })

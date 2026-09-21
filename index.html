@@ -31,7 +31,7 @@
             <figcaption><b>Read latency: database only vs Redis + database</b><span data-help="chartCdf"></span> <span class="key">Redis + database</span> <span class="key base">database only</span></figcaption>
             <p id="paths"></p>
             <div id="chart-cdf"></div>
-            <p class="sub"><b>Difference at each percentile</b>: Redis + database minus database only. <span class="better">Below zero the cache made those reads faster</span>, <span class="worse">above zero it made them slower</span>.</p>
+            <p class="sub"><b>Latency saved by Redis, at each percentile</b>: database only minus Redis + database. <span class="better">Green, above zero: Redis made those reads faster</span>. <span class="worse">Red, below zero: Redis made them slower</span>, because a miss pays for Redis on top of the database. Left of the dashed line the reads are hits, right of it they are misses.</p>
             <div id="chart-gap"></div>
             <table id="latency"></table>
           </figure>
