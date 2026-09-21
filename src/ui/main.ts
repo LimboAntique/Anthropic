@@ -9,8 +9,8 @@ import './style.css'
 
 const STEPS = 1000 // slider resolution
 const SIM_REQUESTS = 3e6 // requests replayed per simulation run
-const S1 = 'var(--s1)'
-const S2 = 'var(--s2)'
+const CHOICE = 'var(--choice)'
+const MUTED = 'var(--muted)'
 // Labelled through the axis text channel because log scales hide tick labels that are not powers of ten
 const TTL_TICKS = [1, 60, 3600, 86400, 2592000]
 
@@ -114,7 +114,9 @@ function render() {
   const advice = advise(P, o)
   const head = advice[0] ?? { level: 'warn', title: `Redis serves ${pct(1 - o.missRate)} of reads`, detail: `P99 goes from ${ms(o.baseline.p99)} to ${ms(o.latency.p99)}.` }
   $('verdict').className = head.level
-  $('verdict').innerHTML = `<b>${head.title}</b> ${head.detail}`
+  const chosen = (text: string) => `<span class="choice">${text}</span>`
+  const ttl = redis.ttlSec === Infinity ? chosen('no TTL') : `a ${chosen(dur(redis.ttlSec))} TTL`
+  $('verdict').innerHTML = `<b>${head.title}</b> with ${chosen(bytes(redis.memGB * 1e9))} and ${ttl}<p>${head.detail.replace(`${redis.memGB} GB`, chosen)}</p>`
   $('advice').innerHTML = advice.map((a) => `<li class="${a.level}"><b>${a.title}</b><br>${a.detail}</li>`).join('') || '<li>No remarks.</li>'
 
   const load = (u: number) => pct(u) + (u >= 1 ? ' ⚠ overload' : '')
@@ -136,9 +138,9 @@ function render() {
     marks: [
       Plot.axisX({ anchor: 'top', label: 'Cost ($/month)', tickFormat: (d: number) => '$' + si(d * redis.pricePerGBMonth) }),
       Plot.axisX({ label: 'Redis memory (GB)', tickFormat: si }),
-      Plot.lineY(c.missVsMem, { x: 'memGB', y: 'ideal', stroke: S2, strokeWidth: 2, strokeDasharray: '4 3' }),
-      Plot.lineY(c.missVsMem, { x: 'memGB', y: 'miss', stroke: S1, strokeWidth: 2, tip: true }),
-      Plot.dot([{ memGB: redis.memGB, miss: o.missRate }], { x: 'memGB', y: 'miss', r: 5, fill: S1, stroke: 'var(--surface)', strokeWidth: 2 }),
+      Plot.lineY(c.missVsMem, { x: 'memGB', y: 'ideal', stroke: 'var(--good)', strokeWidth: 2, strokeDasharray: '4 3' }),
+      Plot.lineY(c.missVsMem, { x: 'memGB', y: 'miss', stroke: CHOICE, strokeWidth: 2, tip: true }),
+      Plot.dot([{ memGB: redis.memGB, miss: o.missRate }], { x: 'memGB', y: 'miss', r: 5, fill: CHOICE, stroke: 'var(--ink)', strokeWidth: 1.5 }),
     ],
   })
 
@@ -152,9 +154,9 @@ function render() {
     marks: [
       Plot.axisX(TTL_TICKS, { label: 'TTL', text: dur }),
       Plot.ruleX(marks, { x: 'x', strokeDasharray: '2 3' }),
-      Plot.text(marks, { x: 'x', text: 'text', frameAnchor: 'top', dy: -10 }),
-      Plot.lineY(c.vsTtl, { x: 'ttlSec', y: 'stale', stroke: S2, strokeWidth: 2 }),
-      Plot.lineY(c.vsTtl, { x: 'ttlSec', y: 'miss', stroke: S1, strokeWidth: 2, tip: true }),
+      ...marks.map((m, i) => Plot.text([m], { x: 'x', text: 'text', frameAnchor: 'top', dy: i ? 8 : -10, stroke: 'var(--paper)', fill: 'var(--ink)' })),
+      Plot.lineY(c.vsTtl, { x: 'ttlSec', y: 'stale', stroke: CHOICE, strokeWidth: 2, strokeDasharray: '2 4' }),
+      Plot.lineY(c.vsTtl, { x: 'ttlSec', y: 'miss', stroke: CHOICE, strokeWidth: 2, tip: true }),
     ],
   })
 
@@ -162,8 +164,8 @@ function render() {
     x: { type: 'log', label: 'Latency (ms)', tickFormat: si },
     y: { label: 'Reads faster than this (%)', percent: true, domain: [0, 100] },
     marks: [
-      Plot.lineY(c.latencyCdf, { x: 'ms', y: 'baseline', stroke: S2, strokeWidth: 2 }),
-      Plot.lineY(c.latencyCdf, { x: 'ms', y: 'withCache', stroke: S1, strokeWidth: 2, tip: true }),
+      Plot.lineY(c.latencyCdf, { x: 'ms', y: 'baseline', stroke: MUTED, strokeWidth: 2 }),
+      Plot.lineY(c.latencyCdf, { x: 'ms', y: 'withCache', stroke: CHOICE, strokeWidth: 2, tip: true }),
     ],
   })
   const row = (name: string, q: typeof o.latency) => `<tr><th>${name}</th><td>${ms(q.p50)}</td><td>${ms(q.p75)}</td><td>${ms(q.p90)}</td><td>${ms(q.p99)}</td></tr>`
@@ -182,11 +184,10 @@ function drawParity() {
     height: 280,
     x: { label: 'Model (%)', percent: true, domain: [0, 100] },
     y: { label: 'Simulation (%)', percent: true, domain: [0, 100] },
-    color: { domain: ['miss', 'stale'], range: [S1, S2] },
     symbol: { domain: ['miss', 'stale'], range: ['circle', 'square'] },
     marks: [
-      Plot.line([[0, 0], [1, 1]], { strokeDasharray: '4 3', strokeOpacity: 0.5 }),
-      Plot.dot(pairs, { x: 'model', y: 'sim', fill: 'kind', symbol: 'kind', r: 5, stroke: 'var(--surface)' }),
+      Plot.line([[0, 0], [1, 1]], { stroke: MUTED, strokeDasharray: '4 3' }),
+      Plot.dot(pairs, { x: 'model', y: 'sim', symbol: 'kind', r: 5, fill: (d) => (d.kind === 'miss' ? CHOICE : 'var(--paper)'), stroke: CHOICE, strokeWidth: 1.5 }),
       Plot.tip(pairs, Plot.pointer({ x: 'model', y: 'sim', title })),
     ],
   })
