@@ -241,8 +241,10 @@ function render() {
     `<br>Average read: ${ms(mean.db)} database only, <b class="${loss ? 'worse' : 'better'}">${ms(mean.withCache)}</b> with Redis. ` +
     `Misses waste a Redis round trip, so the cache only pays off above a hit rate of Redis ÷ database latency = ${pct(mean.breakEvenHit)}; you are at <b class="${loss ? 'worse' : 'better'}">${pct(hit)}</b>.`
 
+  // The x axis stops at the first latency where both curves have reached 100% (to within 0.2%); beyond it they are flat
+  const done = c.latencyCdf.find((d) => Math.min(d.withCache, d.baseline) >= 0.998)?.ms ?? 5000
   draw('chart-cdf', {
-    x: { type: 'log', label: 'Latency (ms)', tickFormat: si, domain: [redis.p50Ms / 4, 2 * Math.max(o.latency.p99, o.baseline.p99)] },
+    x: { type: 'log', label: 'Latency (ms)', tickFormat: si, domain: [redis.p50Ms / 4, done] },
     y: { label: 'Reads at least this fast (%)', percent: true, domain: [0, 100] },
     marks: [
       Plot.ruleY([hit * redis.availability], { strokeDasharray: '2 3' }),
