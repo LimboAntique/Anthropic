@@ -169,7 +169,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 
 | 工作包 | 目的 | 执行 plan | 验收成果 → 预期 | 完成后 |
 |---|---|---|---|---|
-| **M0** | 消灭部署风险、冻结协议 | ✅ GitHub 公开仓库与 remote 已由你配好（`LimboAntique/Anthropic`）。剩余：Vite+TS+Vitest；装齐全部依赖；`types.ts`、`inputs.ts`；各模块 stub（model 返回单调的假数据，sim/worker 返回假点，advisor 返回 `[]`，presets 含 1 个默认）；deploy.yml；开启 Pages（见 T0.2） | `https://limboantique.github.io/Anthropic/` → 打开见占位页；`npm test`、`npm run build` 绿；所有 stub 可被 import | 通知 A/B/C 开工 |
+| **M0** | 消灭部署风险、冻结协议 | ✅ GitHub 公开仓库与 remote 已由你配好（`LimboAntique/does-redis-help`）。剩余：Vite+TS+Vitest；装齐全部依赖；`types.ts`、`inputs.ts`；各模块 stub（model 返回单调的假数据，sim/worker 返回假点，advisor 返回 `[]`，presets 含 1 个默认）；deploy.yml；开启 Pages（见 T0.2） | `https://limboantique.github.io/does-redis-help/` → 打开见占位页；`npm test`、`npm run build` 绿；所有 stub 可被 import | 通知 A/B/C 开工 |
 | **A 模型** | 数学核心 | 按 §5 实现 `evaluate`/`curves` | `model.test.ts` → T=∞ 得 `1-e^{-λTc}`、Tc=∞ 得 `λT/(1+λT)`、α=0∧T=∞ 得 hit=C/N（误差<1e-6）；miss 对 mem、TTL 单调；T=∞ 时 hit 与 rps 无关；invalidate 下 stale=0；性能达标 | 合入 main，移交 model.ts 给 B；转做 **A'** |
 | **A' 预设+结论** | 自包含 demo（硬性要求） | `presets.ts` 5 个：Redis 很有用 / α≈0 无用 / TTL 太短内存白买 / 写多致脏读或抖动 / P99 纹丝不动；`advisor.ts` 先写 3 条结论规则（helps / useless / hurts） | 每个预设的 `advise()[0]` 与其标题一致（写成测试） | 有余力 → MX1 |
 | **B 仿真** | 独立真值 | `simulate`：Map 实现 LRU、FIFO 队列做定长 TTL 即时过期、CDF 二分采样 Zipf、Poisson 读写、两种写策略、前半预热丢弃、可复现 seed；`scaleForSim`；`worker.ts` | `sim.test.ts`（不依赖模型）→ α=0∧T=∞ 得 hit≈C/N；C≥N 得 hit→1；单 key 得 `λT/(1+λT)`；1e6 key×5e6 请求 <3s | 转做 **B'** |
@@ -182,7 +182,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 
 **进度快照（2026-09-21，由主会话汇总；逐项状态以下方清单为准）**
 
-线上：https://limboantique.github.io/Anthropic/ 与 `/exam.html`；main = `0b81d87` 之后，7 个测试文件 88 个测试全绿，CI 自动部署。
+线上：https://limboantique.github.io/does-redis-help/ 与 `/exam.html`；main = `0b81d87` 之后，7 个测试文件 88 个测试全绿，CI 自动部署。
 
 | 阶段 / 轨道 | 状态 | 说明 |
 |---|---|---|
@@ -202,12 +202,12 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 规则：**依赖全部 `[x]` 才能开工**；开工时把 `[ ]` 改成 `[~]` 并写上轨道名；完成且验收通过后改成 `[x]` 并在行尾附 commit hash；**只改自己那一行**。唯一状态源是主目录的 `/Users/blakexu/Documents/PythonProjects/Anthropic/PLAN.md`：所有 agent（包括在 worktree 里的）都按这个绝对路径读写，不要改 worktree 内的副本。
 
 **阶段 0 — 脚手架与协议（串行）**
-- [x] **T0.1** GitHub 公开仓库 + remote（`https://github.com/LimboAntique/Anthropic`）— 依赖：无 — 用户已完成
+- [x] **T0.1** GitHub 公开仓库 + remote（`https://github.com/LimboAntique/does-redis-help`）— 依赖：无 — 用户已完成
 - [x] **T0.2** 开启 GitHub Pages，Source = GitHub Actions（当前 Pages API 返回 404，即尚未开启；属账号设置，需用户操作或明确授权）— 依赖：T0.1
 - [x] **T0.3** Vite+TS+Vitest 脚手架、装齐全部依赖、`.gitignore`、`tsconfig`、`vite.config.ts`（`base:'./'`）— 依赖：无
 - [x] **T0.4** `src/contract/types.ts` + `src/contract/inputs.ts`（`INPUTS`、`DEFAULTS`）→ **协议冻结** — 依赖：T0.3
 - [x] **T0.5** 全部 stub（model/sim/worker/advisor/presets/main）+ 占位 `index.html`，`npm test`/`build` 绿 — 依赖：T0.4
-- [x] **T0.6** `deploy.yml` + 首次部署在公网 URL 验证 — 依赖：T0.2, T0.5 — 582b6ff，https://limboantique.github.io/Anthropic/ 返回 200
+- [x] **T0.6** `deploy.yml` + 首次部署在公网 URL 验证 — 依赖：T0.2, T0.5 — 582b6ff，https://limboantique.github.io/does-redis-help/ 返回 200
 
 **轨道 A — 模型 → 预设与结论**
 - [x] **A1** `model.ts: evaluate()` — 依赖：T0.4 — 8962b6d
@@ -284,7 +284,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 
 ## 11. 需要你拍板的点（已给默认值）
 
-1. 写策略开关，默认 `ttl-only`。 2. α 0–2.5 及 §4 的输入/随机范围。 3. 仿真验证列为核心（图④）。 4. 界面/README 英文，申报 Theme 1。 5. **T0.2**：仓库已就绪，但 Pages 尚未开启（API 404）。请在 Settings → Pages 把 Source 设为 GitHub Actions，或明确授权 agent 执行 `gh api -X POST repos/LimboAntique/Anthropic/pages -f build_type=workflow`。
+1. 写策略开关，默认 `ttl-only`。 2. α 0–2.5 及 §4 的输入/随机范围。 3. 仿真验证列为核心（图④）。 4. 界面/README 英文，申报 Theme 1。 5. **T0.2**：仓库已就绪，但 Pages 尚未开启（API 404）。请在 Settings → Pages 把 Source 设为 GitHub Actions，或明确授权 agent 执行 `gh api -X POST repos/LimboAntique/does-redis-help/pages -f build_type=workflow`。
 
 ## 参考
 

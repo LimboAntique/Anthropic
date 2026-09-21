@@ -1,3 +1,6 @@
 node_modules
 dist
 .DS_Store
+
+# The assignment brief is private to the sender and stays out of the repository
+Platform_SWE_take-home_assignment.pdf

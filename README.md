@@ -2,7 +2,7 @@
 
 An explorable model of a Redis cache in front of a database. Describe a system, make your Redis choices (memory, TTL, write policy), and see what they actually buy: miss rate, stale reads, latency percentiles, database load and cost — with an in-browser simulator that checks the math.
 
-**Live:** https://limboantique.github.io/Anthropic/ · **Theme 1: Exploration & Understanding** (the form is an explorable explanation; the subject is systems reliability)
+**Live:** https://limboantique.github.io/does-redis-help/ · **Theme 1: Exploration & Understanding** (the form is an explorable explanation; the subject is systems reliability)
 
 ![The explorer: a given system and your Redis choices on the left, the verdict, tiles and the latency comparison in the middle, Professor Amber's grading on the right](docs/explorer.webp)
 
