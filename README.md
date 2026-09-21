@@ -4,7 +4,13 @@ An explorable model of a Redis cache in front of a database. Describe a system, 
 
 **Live:** https://limboantique.github.io/Anthropic/ · **Theme 1: Exploration & Understanding** (the form is an explorable explanation; the subject is systems reliability)
 
-<!-- TODO(author): one screenshot or GIF of the page -->
+![The explorer: a given system and your Redis choices on the left, the verdict, tiles and the latency comparison in the middle, Professor Amber's grading on the right](docs/explorer.webp)
+
+*The explorer, showing the "Redis helps" preset: database only versus Redis + database by percentile, and the latency Redis saves at each one.*
+
+![The exam page: Proctor Hoot the owl beside five multiple-choice questions](docs/exam.png)
+
+*The exam: five questions drawn from a bank of fifty, invigilated by Proctor Hoot.*
 
 ## Why this, and what is non-obvious
 
@@ -76,8 +82,6 @@ On the page, the **"Can you trust these numbers?"** panel runs the same simulato
 
 ## Design decisions and tradeoffs
 
-<!-- TODO(author): finalize. Drafted from the development log; keep what you agree with. -->
-
 - **Analytic model first, simulator as the referee.** Sliders need answers in milliseconds, which only a closed form gives; a closed form needs a reason to be believed, which only a simulation gives. Both ship.
 - **Inputs split into "your system" (given) and "your Redis choices" (decide).** The dice button randomises only the system, turning the page into an exercise.
 - **Static site, no backend, no LLM.** Opens instantly, nothing to install, no key to protect.
@@ -86,17 +90,16 @@ On the page, the **"Can you trust these numbers?"** panel runs the same simulato
 
 ## With more time
 
-<!-- TODO(author): pick and order. -->
-
 - Calibrate from production: enter an observed hit rate, solve for α, then predict the effect of a resize.
 - Separate write popularity from read popularity.
 - Per-key view: hit probability by popularity rank, and which mechanism removes each key.
 - LFU and Redis' sampled LRU as alternative policies; `noeviction` failure mode.
 - Database queueing under load, to show the metastable collapse when the cache disappears.
+- Adding System Analysis tool, to auto fill 'Your System' Section
 
 ## Time spent
 
-<!-- TODO(author): approximate hours. -->
+2.5 hours
 
 ## Code map
 
