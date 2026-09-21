@@ -56,8 +56,11 @@ label input, label select { grid-column: 1 / -1; width: 100%; margin: 2px 0 0; }
 
 #charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
 figure > div { margin-top: 8px; }
-figcaption b { color: var(--ink); font-size: 15px; margin-right: 6px; }
-.key { white-space: nowrap; margin-right: 6px; }
+/* Chart title on the left, legend pushed to the right edge, also when it wraps */
+figcaption { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 0 10px; }
+figcaption .info { margin: 0 auto 0 -4px; }
+figcaption b { color: var(--ink); font-size: 15px; }
+.key { white-space: nowrap; }
 .key::before { content: ''; display: inline-block; width: 16px; margin-right: 4px; vertical-align: middle; border-top: 3px solid var(--choice); }
 .key.dot::before { border-top-style: dotted; }
 .key.ideal::before { border-top: 3px dashed var(--good); }
