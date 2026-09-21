@@ -160,6 +160,10 @@ export function curves(p: Params): Curves {
   }
   const miss = 1 - solve(p, capacity(p), b).hit
   const c = cdfs(p, miss)
+  // A database curve shifted by the Redis lookup or by the timeout rises within a few ms of its shift, far narrower than
+  // a log-spaced step out there, so each shift gets its own fine grid on top of the global one
+  const afterShift = [p.redis.p50Ms, p.redis.timeoutMs].flatMap((shift) => logspace(p.sys.dbP50Ms / 50, p.sys.dbP99Ms * 2, 60).map((d) => shift + d))
+  const cdfGrid = [...logspace(0.05, 5000, 240), ...afterShift].sort((x, y) => x - y)
 
   // Miss vs memory is swept by eviction age instead of memory: each Tc yields the memory it fills and its miss rate
   // in one pass with no root finding, so the curve can be dense. Past the memory the TTL lets the cache reach it is flat.
@@ -179,7 +183,7 @@ export function curves(p: Params): Curves {
       const s = solve({ ...p, redis: { ...p.redis, ttlSec } }, capacity(p), b, 26)
       return { ttlSec, miss: 1 - s.hit, stale: s.stale }
     }),
-    latencyCdf: logspace(0.05, 5000, 240).map((ms) => ({ ms, withCache: c.withCache(ms), baseline: c.baseline(ms) })),
+    latencyCdf: cdfGrid.map((ms) => ({ ms, withCache: c.withCache(ms), baseline: c.baseline(ms) })),
   }
 }
 
