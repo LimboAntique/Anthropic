@@ -57,6 +57,7 @@ const HELP: Record<string, string> = {
   'Stale reads': 'Share of reads that return an old value, because the key was updated in the database after it was cached.',
   'P50 latency': 'The typical read: half of all reads finish faster than this. Compare it with the database-only figure underneath.',
   'P99 latency': 'The slow tail: 1 read in 100 is slower than this. While more than 1% of reads miss, the slowest 1% are all misses, and a miss costs Redis plus a database read.',
+  'Cost per ms saved': 'Value for money: the monthly Redis bill divided by the milliseconds it takes off the average read (database only minus Redis + database). Lower is better. The second figure is the same ratio for the next doubling of memory: when it is much higher than the first, you are past the point where more memory pays. If Redis makes the average read slower there is nothing to divide by, and you are paying for a slowdown.',
   'DB load': 'Traffic that reaches the database, as a share of its capacity. 100% or more is overload. Redis down is what the database sees when the cache fails and every read falls through.',
   'Memory used': 'Memory actually occupied in steady state. If it is far below what you bought, the TTL empties the cache before it fills and you pay for idle RAM.',
   'Eviction age': 'How long an untouched key survives before memory pressure pushes it out. It works like a hidden TTL: whichever is shorter, this or your TTL, decides what stays cached.',
@@ -163,11 +164,18 @@ function render() {
   ;($('amber') as HTMLImageElement).src = FACES[`../../cat_teacher/${face}.svg`]
 
   const load = (u: number) => pct(u) + (u >= 1 ? ' ⚠ overload' : '')
+  // Value for money: monthly bill per millisecond taken off the average read, now and for the next doubling of memory
+  const mean = meanLatency(P, o.missRate)
+  const saved = mean.db - mean.withCache
+  const twice = { sys, redis: { ...redis, memGB: redis.memGB * 2 } }
+  const extra = mean.withCache - meanLatency(twice, evaluate(twice).missRate).withCache
+  const next = extra > saved / 1000 ? `2× memory: $${si(o.costPerMonth / extra)} per extra ms` : '2× memory buys nothing more'
   const tiles = [
     ['Hit rate', pct(1 - o.missRate), `miss ${pct(o.missRate)}`],
     ['Stale reads', pct(o.staleRate), redis.writePolicy === 'invalidate' ? 'writes delete the key' : 'of all reads'],
     ['P50 latency', ms(o.latency.p50), `${ms(o.baseline.p50)} without Redis`],
     ['P99 latency', ms(o.latency.p99), `${ms(o.baseline.p99)} without Redis`],
+    ['Cost per ms saved', saved > 0 ? `$${si(o.costPerMonth / saved)}` : '⚠ slower', saved > 0 ? `avg read ${ms(mean.db)} → ${ms(mean.withCache)} · ${next}` : `$${si(o.costPerMonth)}/month to make the average read ${ms(-saved)} slower`],
     ['DB load', load(o.dbLoad.withCache), `no cache ${load(o.dbLoad.noCache)} · Redis down ${load(o.dbLoad.redisDown)}`],
     ['Memory used', bytes(o.memUsedGB * 1e9), `of ${bytes(redis.memGB * 1e9)} · $${si(o.costPerMonth)}/month`],
     ['Eviction age', dur(o.evictionAgeSec), o.evictionAgeSec === Infinity ? 'memory never fills, only the TTL removes keys' : o.binding === 'ttl' ? 'TTL expires keys before LRU evicts them' : 'LRU evicts keys before the TTL fires'],
@@ -205,7 +213,6 @@ function render() {
 
   // Three paths a read can take; a miss pays Redis and then the database, which is what makes a poor hit rate a net loss
   const hit = 1 - o.missRate
-  const mean = meanLatency(P, o.missRate)
   const loss = hit < mean.breakEvenHit
   $('paths').innerHTML =
     `<b>Hit</b> ${pct(hit * redis.availability)}: Redis only, ${ms(redis.p50Ms)}. ` +
@@ -215,13 +222,13 @@ function render() {
     `Misses waste a Redis round trip, so the cache only pays off above a hit rate of Redis ÷ database latency = ${pct(mean.breakEvenHit)}; you are at <b class="${loss ? 'worse' : 'better'}">${pct(hit)}</b>.`
 
   draw('chart-cdf', {
-    x: { type: 'log', label: 'Latency (ms)', tickFormat: si },
+    x: { type: 'log', label: 'Latency (ms)', tickFormat: si, domain: [redis.p50Ms / 4, 2 * Math.max(o.latency.p99, o.baseline.p99)] },
     y: { label: 'Reads at least this fast (%)', percent: true, domain: [0, 100] },
     marks: [
       Plot.ruleY([hit * redis.availability], { strokeDasharray: '2 3' }),
       Plot.text([{ y: hit * redis.availability }], { y: 'y', text: () => 'hit rate: below this line Redis alone, above it Redis + database', frameAnchor: 'right', dy: -7, stroke: 'var(--paper)', fill: 'var(--ink)' }),
-      Plot.lineY(c.latencyCdf, { x: 'ms', y: 'baseline', stroke: MUTED, strokeWidth: 2 }),
-      Plot.lineY(c.latencyCdf, { x: 'ms', y: 'withCache', stroke: CHOICE, strokeWidth: 2, tip: true }),
+      Plot.lineY(c.latencyCdf, { x: 'ms', y: 'baseline', stroke: MUTED, strokeWidth: 2, clip: true }),
+      Plot.lineY(c.latencyCdf, { x: 'ms', y: 'withCache', stroke: CHOICE, strokeWidth: 2, tip: true, clip: true }),
     ],
   })
   const Q = ['p50', 'p75', 'p90', 'p99'] as const

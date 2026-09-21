@@ -28,18 +28,18 @@
         <div id="tiles"></div>
         <div id="charts">
           <figure>
+            <figcaption><b>Read latency: database only vs Redis + database</b><span data-help="chartCdf"></span> <span class="key">Redis + database</span> <span class="key base">database only</span></figcaption>
+            <p id="paths"></p>
+            <div id="chart-cdf"></div>
+            <table id="latency"></table>
+          </figure>
+          <figure>
             <figcaption><b>Miss rate vs memory</b><span data-help="chartMem"></span> <span class="key">your Redis (LRU)</span> <span class="key ideal">ideal (hottest keys pinned)</span></figcaption>
             <div id="chart-mem"></div>
           </figure>
           <figure>
             <figcaption><b>Miss and stale reads vs TTL</b><span data-help="chartTtl"></span> <span class="key">miss</span> <span class="key dot">stale</span></figcaption>
             <div id="chart-ttl"></div>
-          </figure>
-          <figure>
-            <figcaption><b>Read latency: database only vs Redis + database</b><span data-help="chartCdf"></span> <span class="key">Redis + database</span> <span class="key base">database only</span></figcaption>
-            <p id="paths"></p>
-            <div id="chart-cdf"></div>
-            <table id="latency"></table>
           </figure>
           <figure>
             <figcaption><b>Model vs simulation</b><span data-help="chartParity"></span> <span>● miss</span> <span>□ stale</span></figcaption>
