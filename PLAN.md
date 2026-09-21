@@ -217,7 +217,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 - [x] **A5** `advisor.ts` 3 条结论规则 + 预设-结论一致性测试 — 依赖：A3, A4 — 72c9d42
 
 **轨道 B — 仿真 → 交叉验证与修正**
-- [x] **B1** (轨道 B) `sim.ts: simulate()` + `scaleForSim()` — 依赖：T0.4 — 330d195 (track/verify)；82e4184 (track/verify，未合入 main)：`scaleForSim` 按冷启动记忆时长分配事件预算，下限 100 key / 64 槽位，内存对齐到整数个 key
+- [x] **B1** (轨道 B) `sim.ts: simulate()` + `scaleForSim()` — 依赖：T0.4 — 330d195 (track/verify)；82e4184（已随 e236d5a 合入 main）：`scaleForSim` 按冷启动记忆时长分配事件预算，下限 100 key / 64 槽位，内存对齐到整数个 key
 - [x] **B2** (轨道 B) `sim.test.ts`（不依赖模型的自检）+ 性能 — 依赖：B1 — 330d195 (track/verify)；82e4184：增至 15 项（King 精确 LRU、多 key 闭式、单槽 Σp²、与朴素 Map 参考实现逐位一致、退化输入），8 个注入缺陷检出 7 个、另 1 个为等价变异
 - [x] **B3** (轨道 B) `worker.ts` — 依赖：B1 — 924197a (track/verify)
 - [x] **B4** (轨道 B) `cross.test.ts` 网格 — 依赖：B2, A3 — 3510bc0 (track/verify)；82e4184：网格加 T=1.5Tc（64 点，最大 0.35pp）；新增 Validate 路径 37 组配置（默认+5 预设+15 慢热配置+16 随机系统），最大 1.09pp
