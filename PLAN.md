@@ -192,7 +192,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 | 轨道 C UI | ✅ 6/6 | Classroom paper 风格；已合入 main |
 | 集成 | ✅ 3/3 | 线上逐预设验收、🎲 压测、Pages 子路径下 Worker 均通过 |
 | 交付物 | 🔄 2/4 | D1 README 骨架、D3 视频提纲完成；**D2（4 处 `TODO(author)`）与 D4（导出 transcripts）需用户完成** |
-| 扩展 | ✅ 5/6 | X1a 规则集、X1b 面板、X2 吉祥物、X3 教育内容、X5 考试页完成；X4（逐 rank 图 / LFU）未做 |
+| 扩展 | ✅ 6/6 | X1a 规则集、X1b 面板、X2 吉祥物、X3 教育内容、X4 逐 rank 图、X5 考试页全部完成 |
 
 计划外的追加（用户在集成后提出，均已上线）：
 - 延迟图改为题眼并移到第一张：**database only vs Redis + database**，列出 hit / miss / Redis down 三条路径、平均延迟盈亏平衡点（命中率 > Redis 延迟 ÷ DB 延迟）、各分位 Change 行（变慢标红）、命中率虚线；横轴按数据自适应。`engine/model.ts` 新增 `meanLatency()`。
@@ -221,10 +221,10 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 - [x] **A5** `advisor.ts` 3 条结论规则 + 预设-结论一致性测试 — 依赖：A3, A4 — 72c9d42
 
 **轨道 B — 仿真 → 交叉验证与修正**
-- [x] **B1** (轨道 B) `sim.ts: simulate()` + `scaleForSim()` — 依赖：T0.4 — 330d195 (track/verify)
-- [x] **B2** (轨道 B) `sim.test.ts`（不依赖模型的自检）+ 性能 — 依赖：B1 — 330d195 (track/verify)
+- [x] **B1** (轨道 B) `sim.ts: simulate()` + `scaleForSim()` — 依赖：T0.4 — 330d195 (track/verify)；82e4184 (track/verify，未合入 main)：`scaleForSim` 按冷启动记忆时长分配事件预算，下限 100 key / 64 槽位，内存对齐到整数个 key
+- [x] **B2** (轨道 B) `sim.test.ts`（不依赖模型的自检）+ 性能 — 依赖：B1 — 330d195 (track/verify)；82e4184：增至 15 项（King 精确 LRU、多 key 闭式、单槽 Σp²、与朴素 Map 参考实现逐位一致、退化输入），8 个注入缺陷检出 7 个、另 1 个为等价变异
 - [x] **B3** (轨道 B) `worker.ts` — 依赖：B1 — 924197a (track/verify)
-- [x] **B4** (轨道 B) `cross.test.ts` 网格 — 依赖：B2, A3 — 3510bc0 (track/verify)
+- [x] **B4** (轨道 B) `cross.test.ts` 网格 — 依赖：B2, A3 — 3510bc0 (track/verify)；82e4184：网格加 T=1.5Tc（64 点，最大 0.35pp）；新增 Validate 路径 37 组配置（默认+5 预设+15 慢热配置+16 随机系统），最大 1.09pp
 - [x] **B5** (轨道 B) 修正 `model.ts` 直到网格偏差 ≤2pp，记录实测最大误差 — 依赖：B4 — 3510bc0 (track/verify)；model.ts 无需修改：48 点网格最大偏差 0.25pp，网格外探测（C=20、T=1.5Tc）最大 0.51pp
 
 **轨道 C — UI（对着 stub 开发）**
@@ -250,7 +250,7 @@ stale(ttl-only) = Σ p_i·λ(ℓ_{w=0} - ℓ_w)/(1+λℓ_{w=0});  invalidate →
 - [x] **X2** (轨道 C) 吉祥物 Professor Amber 入驻 Advisor 面板，表情绑定 `level` — 依赖：X1b — 素材已精简（e4659e9）：`cat_teacher/face_{happy,thinking,stern,surprised}.svg`（同一 viewBox，可直接互换）+ `face_full_marks.svg`（同为大头风格，旁标 A+）；映射 good→happy、warn→thinking、bad→stern、DB 过载/承重墙→surprised、全部 good→face_full_marks — 19eb2cc (track/ui)
 - [x] **X3** 教育内容 — 依赖：I3 — e41a9fa；主页 `#lessons`：6 课（miss 比无缓存慢 / 容量是隐形 TTL / 中位动而尾部不动 / 脏读跟着热 key / 承重缓存与双稳态 / Redis 默认配置陷阱），其中 4 课带 Try it 按钮加载同名预设，附延伸阅读
 - [x] **X5** 考试页 `exam.html`：50 题题库（`src/engine/quiz.ts`，数字类题目由测试用 `evaluate()` 复核）→ 随机抽 5 道选择题 → 打分 + 逐题解释；专属监考吉祥物猫头鹰（`cat_teacher/proctor_*.svg`）— 依赖：A3；新增文件 `exam.html` `src/ui/exam.ts` `src/ui/exam.css` `test/quiz.test.ts`，并改 `vite.config.ts` 为多页 — f4fe2bd；浏览器验收通过（答题→交卷→打分/解释/猫头鹰表情，无 console 报错）
-- [ ] **X4** 逐 rank 命中概率图 / LFU 对比 — 依赖：A3, C4
+- [x] **X4** 逐 rank 命中概率图 / LFU 对比 — 依赖：A3, C4 — 51eac81；图 “Which keys are cached”：逐 rank 命中概率（LRU 渐降）+ 累计流量 + 理想缓存（= 完美 LFU，钉住最热 key）的截止线；`engine/model.ts` 新增 `byRank()`，测试验证逐 rank 加权和等于总命中率。LFU 对比即此截止线与图①的 ideal 线，未另建 LFU 模型
 
 ## 9. 扩展（有时间再做）
 
